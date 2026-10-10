@@ -42,8 +42,8 @@ export default function NewArrivals({
     }
 
     return (
-        <section className="bg-gray-50 py-16 dark:bg-gray-950">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="am-seasonal-surface bg-gray-50 py-16 dark:bg-gray-950">
+            <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
                 {/* Заголовок */}
                 <div className="mb-8 flex flex-wrap items-end justify-between gap-5">

@@ -1,6 +1,9 @@
 
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import {
+    useNavigate,
+    useSearchParams,
+} from 'react-router-dom';
 
 import {
     Search,
@@ -40,6 +43,17 @@ type Filters = {
     sortOrder: SortOrder;
 };
 
+// Усі доступні варіанти сортування
+const sortOrders: SortOrder[] = [
+    'dateDesc',
+    'dateAsc',
+    'yearDesc',
+    'yearAsc',
+    'priceAsc',
+    'priceDesc',
+];
+
+// Фільтри за замовчуванням
 function createDefaultFilters(): Filters {
     return {
         search: '',
@@ -55,34 +69,125 @@ function createDefaultFilters(): Filters {
     };
 }
 
+// Зчитуємо фільтри з URL
+function readFiltersFromUrl(
+    params: URLSearchParams
+): Filters {
+    const sort = params.get('sortOrder');
+
+    return {
+        search: params.get('search') ?? '',
+        brand: params.get('brand') ?? '',
+        bodyType: params.get('bodyType') ?? '',
+        fuelType: params.get('fuelType') ?? '',
+        engineVolume: params.get('engineVolume') ?? '',
+        minPrice: params.get('minPrice') ?? '',
+        maxPrice: params.get('maxPrice') ?? '',
+        minYear: params.get('minYear') ?? '',
+        maxYear: params.get('maxYear') ?? '',
+
+        sortOrder:
+            sort && sortOrders.includes(sort as SortOrder)
+                ? (sort as SortOrder)
+                : 'dateDesc',
+    };
+}
+
+// Перетворюємо фільтри на параметри URL
+function createSearchParams(
+    filters: Filters
+): URLSearchParams {
+    const params = new URLSearchParams();
+
+    const fields: (keyof Omit<Filters, 'sortOrder'>)[] = [
+        'search',
+        'brand',
+        'bodyType',
+        'fuelType',
+        'engineVolume',
+        'minPrice',
+        'maxPrice',
+        'minYear',
+        'maxYear',
+    ];
+
+    fields.forEach(field => {
+        const value = filters[field].trim();
+
+        if (value) {
+            params.set(field, value);
+        }
+    });
+
+    // Стандартне сортування можна не писати в URL
+    if (filters.sortOrder !== 'dateDesc') {
+        params.set('sortOrder', filters.sortOrder);
+    }
+
+    return params;
+}
+
 export default function CatalogPage({
                                         vehicles,
                                     }: CatalogPageProps) {
     const navigate = useNavigate();
 
-    // Меню фільтрів спочатку закрите
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [searchParams, setSearchParams] =
+        useSearchParams();
 
-    // Фільтри, які користувач змінює
+    const queryString = searchParams.toString();
+
+    // Застосовані фільтри завжди відповідають URL
+    const appliedFilters = useMemo(() => {
+        return readFiltersFromUrl(
+            new URLSearchParams(queryString)
+        );
+    }, [queryString]);
+
+    // Значення, які користувач змінює в меню
     const [draftFilters, setDraftFilters] =
-        useState<Filters>(createDefaultFilters);
+        useState<Filters>(() =>
+            readFiltersFromUrl(searchParams)
+        );
 
-    // Фільтри, які користувач підтвердив
-    const [appliedFilters, setAppliedFilters] =
-        useState<Filters>(createDefaultFilters);
+    // Меню за замовчуванням закрите
+    const [isFiltersOpen, setIsFiltersOpen] =
+        useState(false);
 
+    // При переході з футера або зміні адреси
+    // оновлюємо вибрані фільтри
+    useEffect(() => {
+        setDraftFilters(appliedFilters);
+        setIsFiltersOpen(false);
+    }, [appliedFilters]);
+
+    // Унікальні марки
     const brands = [
-        ...new Set(vehicles.map(car => car.brand)),
+        ...new Set(
+            vehicles.map(vehicle => vehicle.brand)
+        ),
     ].sort();
 
+    // Унікальні види палива
     const fuelTypes = [
-        ...new Set(vehicles.map(car => car.fuelType)),
+        ...new Set(
+            vehicles.map(vehicle => vehicle.fuelType)
+        ),
     ].sort();
 
+    // Унікальні об'єми двигуна
     const engineVolumes = [
-        ...new Set(vehicles.map(car => car.engineVolume)),
+        ...new Set(
+            vehicles
+                .map(vehicle => vehicle.engineVolume)
+                .filter(
+                    (volume): volume is number =>
+                        volume !== null
+                )
+        ),
     ].sort((a, b) => a - b);
 
+    // Зміна параметра в меню
     function updateFilter<K extends keyof Filters>(
         key: K,
         value: Filters[K]
@@ -93,25 +198,29 @@ export default function CatalogPage({
         }));
     }
 
-    // Кнопка "Показати автомобілі"
+    // Підтвердження фільтрів
     function applyFilters() {
-        setAppliedFilters({ ...draftFilters });
+        const params = createSearchParams(draftFilters);
+
+        setSearchParams(params);
         setIsFiltersOpen(false);
     }
 
+    // Очистити всі фільтри
     function resetFilters() {
-        const defaults = createDefaultFilters();
-
-        setDraftFilters(defaults);
-        setAppliedFilters(defaults);
+        setDraftFilters(createDefaultFilters());
+        setSearchParams({});
+        setIsFiltersOpen(false);
     }
 
+    // Перевірка діапазону ціни
     const invalidPriceRange =
         draftFilters.minPrice !== '' &&
         draftFilters.maxPrice !== '' &&
         Number(draftFilters.minPrice) >
         Number(draftFilters.maxPrice);
 
+    // Перевірка діапазону років
     const invalidYearRange =
         draftFilters.minYear !== '' &&
         draftFilters.maxYear !== '' &&
@@ -134,60 +243,80 @@ export default function CatalogPage({
                 !fullName.includes(
                     filters.search.toLowerCase().trim()
                 )
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Марка
             if (
                 filters.brand &&
                 vehicle.brand !== filters.brand
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Тип кузова
             if (
                 filters.bodyType &&
                 vehicle.bodyType !== filters.bodyType
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Паливо
             if (
                 filters.fuelType &&
                 vehicle.fuelType !== filters.fuelType
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Об'єм двигуна
             if (
                 filters.engineVolume &&
-                vehicle.engineVolume !== Number(filters.engineVolume)
-            ) return false;
+                vehicle.engineVolume !==
+                Number(filters.engineVolume)
+            ) {
+                return false;
+            }
 
             // Мінімальна ціна
             if (
                 filters.minPrice &&
                 vehicle.price < Number(filters.minPrice)
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Максимальна ціна
             if (
                 filters.maxPrice &&
                 vehicle.price > Number(filters.maxPrice)
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Мінімальний рік
             if (
                 filters.minYear &&
                 vehicle.year < Number(filters.minYear)
-            ) return false;
+            ) {
+                return false;
+            }
 
             // Максимальний рік
             if (
                 filters.maxYear &&
                 vehicle.year > Number(filters.maxYear)
-            ) return false;
+            ) {
+                return false;
+            }
 
             return true;
         });
 
-        // Сортуємо знайдені автомобілі
+        // Дата додавання використовується
+        // тільки для сортування
         return result.sort((a, b) => {
             switch (filters.sortOrder) {
                 case 'dateDesc':
@@ -221,11 +350,12 @@ export default function CatalogPage({
         'dark:border-gray-700 dark:bg-gray-800 dark:text-white';
 
     const labelClass =
-        'mb-2 block text-sm font-semibold text-gray-900 dark:text-white';
+        'mb-2 block text-sm font-semibold ' +
+        'text-gray-900 dark:text-white';
 
     return (
-        <main className="min-h-screen bg-gray-50 py-12 dark:bg-gray-950">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <main className="am-seasonal-surface min-h-screen bg-gray-50 py-12 dark:bg-gray-950">
+            <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
                 {/* Заголовок */}
                 <div className="mb-8">
@@ -235,6 +365,13 @@ export default function CatalogPage({
 
                     <p className="mt-3 text-gray-500 dark:text-gray-400">
                         Знайдіть автомобіль для вашого бізнесу
+                    </p>
+                </div>
+
+                {/* Акцент на доставці */}
+                <div className="mb-8 rounded-xl border border-yellow-400/40 bg-yellow-50 px-5 py-4 dark:bg-yellow-400/10">
+                    <p className="text-sm font-bold text-gray-900 dark:text-yellow-400">
+                        🚚 Безкоштовна доставка автомобілів по всій Україні!
                     </p>
                 </div>
 
@@ -252,9 +389,11 @@ export default function CatalogPage({
 
                     Фільтри
 
-                    {isFiltersOpen
-                        ? <ChevronUp size={20} />
-                        : <ChevronDown size={20} />}
+                    {isFiltersOpen ? (
+                        <ChevronUp size={20} />
+                    ) : (
+                        <ChevronDown size={20} />
+                    )}
                 </button>
 
                 {/* Панель фільтрів */}
@@ -273,7 +412,7 @@ export default function CatalogPage({
                                 }
                             }}
                         >
-                            {/* Тип кузова за фотографіями */}
+                            {/* Вибір кузова за фотографіями */}
                             <div className="mb-8">
                                 <BodyTypeSelector
                                     value={draftFilters.bodyType}
@@ -305,10 +444,10 @@ export default function CatalogPage({
                                             type="search"
                                             placeholder="Mercedes, MAN..."
                                             value={draftFilters.search}
-                                            onChange={e =>
+                                            onChange={event =>
                                                 updateFilter(
                                                     'search',
-                                                    e.target.value
+                                                    event.target.value
                                                 )
                                             }
                                             className={`${inputClass} pl-10`}
@@ -328,10 +467,10 @@ export default function CatalogPage({
                                     <select
                                         id="brand"
                                         value={draftFilters.brand}
-                                        onChange={e =>
+                                        onChange={event =>
                                             updateFilter(
                                                 'brand',
-                                                e.target.value
+                                                event.target.value
                                             )
                                         }
                                         className={inputClass}
@@ -363,10 +502,10 @@ export default function CatalogPage({
                                     <select
                                         id="fuelType"
                                         value={draftFilters.fuelType}
-                                        onChange={e =>
+                                        onChange={event =>
                                             updateFilter(
                                                 'fuelType',
-                                                e.target.value
+                                                event.target.value
                                             )
                                         }
                                         className={inputClass}
@@ -398,10 +537,10 @@ export default function CatalogPage({
                                     <select
                                         id="engineVolume"
                                         value={draftFilters.engineVolume}
-                                        onChange={e =>
+                                        onChange={event =>
                                             updateFilter(
                                                 'engineVolume',
-                                                e.target.value
+                                                event.target.value
                                             )
                                         }
                                         className={inputClass}
@@ -433,10 +572,10 @@ export default function CatalogPage({
                                     <select
                                         id="sortOrder"
                                         value={draftFilters.sortOrder}
-                                        onChange={e =>
+                                        onChange={event =>
                                             updateFilter(
                                                 'sortOrder',
-                                                e.target.value as SortOrder
+                                                event.target.value as SortOrder
                                             )
                                         }
                                         className={inputClass}
@@ -478,12 +617,12 @@ export default function CatalogPage({
                                             type="number"
                                             min="0"
                                             placeholder="Від"
-                                            aria-label="Ціна від"
+                                            aria-label="Мінімальна ціна"
                                             value={draftFilters.minPrice}
-                                            onChange={e =>
+                                            onChange={event =>
                                                 updateFilter(
                                                     'minPrice',
-                                                    e.target.value
+                                                    event.target.value
                                                 )
                                             }
                                             className={inputClass}
@@ -493,12 +632,12 @@ export default function CatalogPage({
                                             type="number"
                                             min="0"
                                             placeholder="До"
-                                            aria-label="Ціна до"
+                                            aria-label="Максимальна ціна"
                                             value={draftFilters.maxPrice}
-                                            onChange={e =>
+                                            onChange={event =>
                                                 updateFilter(
                                                     'maxPrice',
-                                                    e.target.value
+                                                    event.target.value
                                                 )
                                             }
                                             className={inputClass}
@@ -517,12 +656,12 @@ export default function CatalogPage({
                                             type="number"
                                             min="1900"
                                             placeholder="Від"
-                                            aria-label="Рік від"
+                                            aria-label="Мінімальний рік"
                                             value={draftFilters.minYear}
-                                            onChange={e =>
+                                            onChange={event =>
                                                 updateFilter(
                                                     'minYear',
-                                                    e.target.value
+                                                    event.target.value
                                                 )
                                             }
                                             className={inputClass}
@@ -532,22 +671,21 @@ export default function CatalogPage({
                                             type="number"
                                             min="1900"
                                             placeholder="До"
-                                            aria-label="Рік до"
+                                            aria-label="Максимальний рік"
                                             value={draftFilters.maxYear}
-                                            onChange={e =>
+                                            onChange={event =>
                                                 updateFilter(
                                                     'maxYear',
-                                                    e.target.value
+                                                    event.target.value
                                                 )
                                             }
                                             className={inputClass}
                                         />
                                     </div>
                                 </div>
-
                             </div>
 
-                            {/* Помилки введення */}
+                            {/* Помилка діапазону */}
                             {hasInvalidRange && (
                                 <p
                                     role="alert"
@@ -558,12 +696,12 @@ export default function CatalogPage({
                                 </p>
                             )}
 
-                            {/* Кнопки підтвердження */}
+                            {/* Кнопки */}
                             <div className="mt-8 flex flex-wrap gap-3">
                                 <button
                                     type="submit"
                                     disabled={hasInvalidRange}
-                                    className="rounded-xl bg-yellow-400 px-7 py-3 font-bold text-gray-950 transition hover:bg-yellow-500 disabled:opacity-50"
+                                    className="rounded-xl bg-yellow-400 px-7 py-3 font-bold text-gray-950 transition hover:bg-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     Показати автомобілі
                                 </button>
@@ -571,7 +709,7 @@ export default function CatalogPage({
                                 <button
                                     type="button"
                                     onClick={resetFilters}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-900 hover:border-yellow-400 dark:border-gray-700 dark:text-white"
+                                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:border-yellow-400 dark:border-gray-700 dark:text-white"
                                 >
                                     <RotateCcw size={18} />
                                     Скинути фільтри
@@ -581,13 +719,22 @@ export default function CatalogPage({
                     </section>
                 )}
 
-                {/* Каталог автомобілів */}
+                {/* Результати */}
                 <section aria-label="Автомобілі в каталозі">
-                    <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
 
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            Автомобілі в наявності
-                        </h2>
+                    <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                Автомобілі в наявності
+                            </h2>
+
+                            {/* Показуємо назву активної категорії */}
+                            {appliedFilters.bodyType && (
+                                <p className="mt-2 text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                                    Категорія: {appliedFilters.bodyType}
+                                </p>
+                            )}
+                        </div>
 
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                             Знайдено: {filteredVehicles.length}
@@ -595,7 +742,10 @@ export default function CatalogPage({
                     </div>
 
                     {filteredVehicles.length > 0 ? (
-                        // На комп'ютері — 3 картки в ряд
+
+                        // Комп'ютер — 3 картки в ряд
+                        // Планшет — 2
+                        // Телефон — 1
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
                             {filteredVehicles.map(vehicle => (
@@ -609,6 +759,7 @@ export default function CatalogPage({
                             ))}
 
                         </div>
+
                     ) : (
                         <div className="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center dark:border-gray-800 dark:bg-gray-900">
 
@@ -617,15 +768,12 @@ export default function CatalogPage({
                             </h3>
 
                             <p className="mt-3 text-gray-500 dark:text-gray-400">
-                                Спробуйте змінити параметри пошуку
+                                Спробуйте змінити параметри пошуку.
                             </p>
 
                             <button
                                 type="button"
-                                onClick={() => {
-                                    resetFilters();
-                                    setIsFiltersOpen(false);
-                                }}
+                                onClick={resetFilters}
                                 className="mt-6 rounded-xl bg-yellow-400 px-6 py-3 font-bold text-gray-950"
                             >
                                 Показати всі автомобілі
@@ -634,7 +782,6 @@ export default function CatalogPage({
                         </div>
                     )}
                 </section>
-
             </div>
         </main>
     );

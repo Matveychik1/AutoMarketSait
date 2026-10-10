@@ -3,9 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Phone } from 'lucide-react';
 
 import VehicleGallery from '../components/VehicleGallery';
+import VehicleSpecifications from '../components/VehicleSpecifications';
+import BodyDimensions from '../components/BodyDimensions';
+import VehicleEquipment from '../components/VehicleEquipment';
+
 import type { Vehicle } from '../types/vehicle';
 
-type CarDetailsPageProps = {
+type Props = {
     vehicles: Vehicle[];
 };
 
@@ -17,16 +21,16 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 
 export default function CarDetailsPage({
                                            vehicles,
-                                       }: CarDetailsPageProps) {
+                                       }: Props) {
     const { id } = useParams<{ id: string }>();
 
     const vehicle = vehicles.find(
-        item => String(item.id) === id
+        car => String(car.id) === id
     );
 
     if (!vehicle) {
         return (
-            <main className="min-h-[60vh] bg-gray-50 px-4 py-20 text-center dark:bg-gray-950">
+            <main className="am-seasonal-surface min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Автомобіль не знайдено
                 </h1>
@@ -46,73 +50,50 @@ export default function CarDetailsPage({
             ? vehicle.images
             : [vehicle.image];
 
-    const details = [
-        ['Рік випуску', String(vehicle.year)],
-        ['Пробіг', `${vehicle.mileage.toLocaleString('uk-UA')} км`],
-        ['Тип кузова', vehicle.bodyType],
-        ['Паливо', vehicle.fuelType],
-        [
-            "Об'єм двигуна",
-            vehicle.engineVolume != null
-                ? `${vehicle.engineVolume} л`
-                : 'Не застосовується',
-        ],
-    ];
-
     return (
         <main className="min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
+                {/* Назад до каталогу */}
                 <Link
                     to="/catalog"
-                    className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-yellow-600 dark:text-gray-300"
+                    className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-yellow-600 dark:text-gray-300"
                 >
                     <ArrowLeft size={18} />
                     Назад до каталогу
                 </Link>
 
-                <h1 className="mb-3 text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
-                    {vehicle.brand} {vehicle.model}
-                </h1>
+                {/* Заголовок */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
+                        {vehicle.brand} {vehicle.model}
+                    </h1>
 
-                <p className="mb-8 text-gray-500 dark:text-gray-400">
-                    {vehicle.year} • {vehicle.bodyType} • {vehicle.fuelType}
-                </p>
+                    <p className="mt-3 text-gray-500 dark:text-gray-400">
+                        {vehicle.year} рік • {vehicle.bodyType} • {vehicle.fuelType}
+                    </p>
+                </div>
 
                 <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
 
+                    {/* Основна інформація */}
                     <div className="min-w-0 space-y-8">
 
-                        {/* Фотогалерея */}
                         <VehicleGallery
                             key={vehicle.id}
                             images={images}
                             title={`${vehicle.brand} ${vehicle.model}`}
                         />
 
-                        {/* Характеристики */}
-                        <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
-                            <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
-                                Характеристики
-                            </h2>
+                        <VehicleSpecifications vehicle={vehicle} />
 
-                            <dl className="grid gap-4 sm:grid-cols-2">
-                                {details.map(([label, value]) => (
-                                    <div
-                                        key={label}
-                                        className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800"
-                                    >
-                                        <dt className="text-sm text-gray-500 dark:text-gray-400">
-                                            {label}
-                                        </dt>
+                        <BodyDimensions
+                            dimensions={vehicle.bodyDimensions}
+                        />
 
-                                        <dd className="mt-1 font-bold text-gray-900 dark:text-white">
-                                            {value}
-                                        </dd>
-                                    </div>
-                                ))}
-                            </dl>
-                        </section>
+                        <VehicleEquipment
+                            equipment={vehicle.equipment}
+                        />
 
                         {/* Опис */}
                         {vehicle.description && (
@@ -127,19 +108,19 @@ export default function CarDetailsPage({
                             </section>
                         )}
 
-                        {/* Відеоогляд */}
+                        {/* Необов'язковий YouTube-огляд */}
                         {vehicle.youtubeVideoId && (
                             <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
                                 <h2 className="mb-5 text-2xl font-bold text-gray-900 dark:text-white">
-                                    Відеоогляд
+                                    Відеоогляд автомобіля
                                 </h2>
 
                                 <div className="aspect-video overflow-hidden rounded-xl">
                                     <iframe
                                         title={`Відеоогляд ${vehicle.brand} ${vehicle.model}`}
                                         src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(vehicle.youtubeVideoId)}`}
-                                        allowFullScreen
                                         loading="lazy"
+                                        allowFullScreen
                                         referrerPolicy="strict-origin-when-cross-origin"
                                         allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share"
                                         className="h-full w-full border-0"
@@ -152,14 +133,16 @@ export default function CarDetailsPage({
                                     rel="noopener noreferrer"
                                     className="mt-4 inline-block font-semibold text-yellow-600 hover:underline dark:text-yellow-400"
                                 >
-                                    Переглянути на YouTube ↗
+                                    Дивитися на YouTube ↗
                                 </a>
                             </section>
                         )}
+
                     </div>
 
-                    {/* Ціна */}
+                    {/* Ціна та контакти */}
                     <aside className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900 lg:sticky lg:top-24">
+
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Ціна автомобіля
                         </p>
@@ -171,7 +154,7 @@ export default function CarDetailsPage({
                         <div className="mt-6 space-y-3">
                             <a
                                 href="tel:+380671002124"
-                                className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 font-bold text-gray-950 hover:bg-yellow-500"
+                                className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 font-bold text-gray-950 transition hover:bg-yellow-500"
                             >
                                 <Phone size={19} />
                                 067 100 21 24
@@ -179,12 +162,16 @@ export default function CarDetailsPage({
 
                             <a
                                 href="tel:+380502002124"
-                                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-4 font-semibold text-gray-900 hover:border-yellow-400 dark:border-gray-700 dark:text-white"
+                                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-4 font-semibold text-gray-900 transition hover:border-yellow-400 dark:border-gray-700 dark:text-white"
                             >
                                 <Phone size={19} />
                                 050 200 21 24
                             </a>
                         </div>
+
+                        <p className="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
+                            AutoMarket Rivne
+                        </p>
                     </aside>
 
                 </div>

@@ -1,11 +1,13 @@
 
 import { Route, Routes } from 'react-router-dom';
 
+import SeasonalEffects from './components/SeasonalEffects';
 import { Header } from './components/Header';
 import HeroSlider from './components/HeroSlider';
 import NewArrivals from './components/NewArrivals';
 import ContactSection from './components/ContactSection';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 
 import CatalogPage from './pages/CatalogPage';
 import AboutPage from './pages/AboutPage';
@@ -13,7 +15,10 @@ import CarDetailsPage from './pages/CarDetailsPage';
 
 import type { Vehicle } from './types/vehicle';
 
-// Банери головної сторінки
+// ========================================
+// БАНЕРИ ГОЛОВНОЇ СТОРІНКИ
+// ========================================
+
 const slides = [
     {
         id: 1,
@@ -59,7 +64,10 @@ const slides = [
     },
 ];
 
-// Тестові автомобілі
+// ========================================
+// ТЕСТОВІ АВТОМОБІЛІ
+// ========================================
+
 const testVehicles: Vehicle[] = [
     {
         id: 1,
@@ -74,12 +82,33 @@ const testVehicles: Vehicle[] = [
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-09',
 
-        // Фотографії для галереї
+        transmission: 'Механічна',
+        drivetrain: 'Задній',
+        powerHp: 163,
+        payloadKg: 1500,
+        grossWeightKg: 3500,
+
+        bodyDimensions: {
+            length: 3.6,
+            width: 2.2,
+            height: 2.1,
+        },
+
+        equipment: [
+            'Кондиціонер',
+            'Круїз-контроль',
+            'Камера заднього виду',
+            'Мультимедійна система',
+            'Електросклопідйомники',
+            'Центральний замок',
+            'Підігрів дзеркал',
+        ],
+
         images: [
             '/PhotoAutoMarket/box1.jpg',
-            '/PhotoAutoMarket/box2.jpg',
-            '/PhotoAutoMarket/box3.jpg',
-            '/PhotoAutoMarket/box4.jpg',
+            '/PhotoAutoMarket/box1.jpg',
+            '/PhotoAutoMarket/box1.jpg',
+            '/PhotoAutoMarket/box1.jpg',
         ],
 
         description:
@@ -170,12 +199,26 @@ const testVehicles: Vehicle[] = [
     },
 ];
 
+// ========================================
+// ГОЛОВНИЙ КОМПОНЕНТ APP
+// ========================================
+
 function App() {
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950">
+
+            {/* Автоматично прокручує сторінки нагору */}
+            <ScrollToTop />
+
+            {/* Сезонні ефекти: сніг, листя, Геловін */}
+            <SeasonalEffects />
+
+            {/* Шапка сайту */}
             <Header />
 
+            {/* Маршрути сайту */}
             <Routes>
+
                 {/* Головна сторінка */}
                 <Route
                     path="/"
@@ -217,9 +260,12 @@ function App() {
                     path="/about"
                     element={<AboutPage />}
                 />
+
             </Routes>
 
+            {/* Футер */}
             <Footer />
+
         </div>
     );
 }

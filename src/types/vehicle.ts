@@ -1,35 +1,41 @@
 
 export type Vehicle = {
     id: number;
-
     brand: string;
     model: string;
-
     year: number;
     price: number;
     mileage: number;
-
     bodyType: string;
-    engineVolume: number;
+    engineVolume: number | null;
 
     fuelType:
         | 'Дизель'
-        | 'Бензин'
-        | 'Електро'
-        | 'Гібрид';
+        | 'Бензин';
 
-    // Головне фото для каталогу
+    // Фото та опис
     image: string;
+    images?: string[];
+    description?: string;
+    youtubeVideoId?: string;
 
-    // Дата для сортування (на сайті не показуємо)
+    // Для сортування (покупцю не показуємо)
     addedAt: string;
 
-    // Всі фотографії автомобіля (30–50 або більше)
-    images?: string[];
+    // Додаткові технічні характеристики
+    transmission?: string;
+    drivetrain?: string;
+    powerHp?: number;
+    payloadKg?: number;
+    grossWeightKg?: number;
 
-    // Детальний опис автомобіля
-    description?: string;
+    // Габарити кузова в метрах
+    bodyDimensions?: {
+        length?: number;
+        width?: number;
+        height?: number;
+    };
 
-    // ID відеоогляду з YouTube
-    youtubeVideoId?: string;
+    // Комплектація автомобіля
+    equipment?: string[];
 };
