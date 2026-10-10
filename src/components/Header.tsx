@@ -1,173 +1,281 @@
 
-import { useState } from 'react';
-import { Menu, X, Phone, Moon, Sun, Copy, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 
-const PHONE_NUMBER = '+380671002124';
+import {
+    ChevronDown,
+    Menu,
+    Moon,
+    Phone,
+    Sun,
+    X,
+} from 'lucide-react';
 
-const navigation = [
-    { label: 'Головна', href: '/' },
-    { label: 'Каталог', href: '/catalog' },
-    { label: 'Про нас', href: '/about' },
+import { SeasonalEffectsToggle } from './SeasonalEffects';
+
+const phoneNumbers = [
+    {
+        label: '067 100 21 24',
+        href: 'tel:+380671002124',
+    },
+    {
+        label: '050 200 21 24',
+        href: 'tel:+380502002124',
+    },
 ];
 
-export function Header() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isPhoneOpen, setIsPhoneOpen] = useState(false);
-    const [isCopied, setIsCopied] = useState(false);
+const navigation = [
+    {
+        label: 'Головна',
+        to: '/',
+    },
+    {
+        label: 'Каталог',
+        to: '/catalog',
+    },
+    {
+        label: 'Про нас',
+        to: '/about',
+    },
+];
 
-    const [isDark, setIsDark] = useState(
-        () => localStorage.getItem('theme') === 'dark'
-    );
+function getInitialTheme(): boolean {
+    try {
+        const saved = localStorage.getItem('theme');
+
+        if (saved === 'dark') return true;
+        if (saved === 'light') return false;
+    } catch {
+        // Якщо localStorage недоступний
+    }
+
+    return document.documentElement.classList.contains('dark');
+}
+
+export function Header() {
+    const location = useLocation();
+
+    const [isDark, setIsDark] = useState(getInitialTheme);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Застосування світлої / темної теми
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDark);
+
+        try {
+            localStorage.setItem(
+                'theme',
+                isDark ? 'dark' : 'light'
+            );
+        } catch {
+            // Тема продовжить працювати в поточній вкладці
+        }
+    }, [isDark]);
+
+    // Закриваємо мобільне меню при переході
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [location.pathname, location.search]);
 
     function toggleTheme() {
-        const nextTheme = !isDark;
-
-        setIsDark(nextTheme);
-        localStorage.setItem('theme', nextTheme ? 'dark' : 'light');
-
-        document.documentElement.classList.toggle('dark', nextTheme);
+        setIsDark(previous => !previous);
     }
 
-    async function copyPhone() {
-        try {
-            await navigator.clipboard.writeText(PHONE_NUMBER);
-            setIsCopied(true);
-        } catch {
-            setIsCopied(false);
-        }
-    }
+    const navClass = ({ isActive }: { isActive: boolean }) =>
+        `rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            isActive
+                ? 'bg-yellow-400/15 text-yellow-600 dark:text-yellow-400'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-yellow-600 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-yellow-400'
+        }`;
 
     return (
-        <header className="relative z-50 border-b border-gray-200 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
-            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/95">
+
+            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
 
                 {/* Логотип */}
-
-                <a
-                    href="/"
-                    className="shrink-0"
+                <Link
+                    to="/"
                     aria-label="AutoMarket Rivne — головна"
+                    className="flex min-w-0 shrink items-center"
                 >
-                    {/* Світла тема — чорний логотип */}
                     <img
-                        src="/PhotoAutoMarket/LogoAutoMarket_black.png"
+                        src="/PhotoAutoMarket/LogoAutoMarketBlack.png"
                         alt="AutoMarket Rivne"
-                        className="block h-14 w-auto object-contain dark:hidden"
+                        className="h-12 w-auto max-w-[145px] object-contain sm:h-14 sm:max-w-[190px] dark:hidden"
                     />
 
-                    {/* Темна тема — білий логотип */}
                     <img
-                        src="/PhotoAutoMarket/LogoAutoMarket.png"
+                        src="/PhotoAutoMarket/LogoAutoMarketWhite.png"
                         alt="AutoMarket Rivne"
-                        className="hidden h-14 w-auto object-contain dark:block"
+                        className="hidden h-12 w-auto max-w-[145px] object-contain sm:h-14 sm:max-w-[190px] dark:block"
                     />
-                </a>
+                </Link>
 
-
-                {/* Навігація для комп'ютера */}
-                <nav aria-label="Основна навігація" className="hidden md:block">
-                    <ul className="flex items-center gap-8">
-                        {navigation.map((item) => (
-                            <li key={item.href}>
-                                <a
-                                    href={item.href}
-                                    className="text-sm font-semibold transition-colors hover:text-yellow-500"
-                                >
-                                    {item.label}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
+                {/* Навігація на комп'ютері */}
+                <nav
+                    aria-label="Основна навігація"
+                    className="hidden items-center gap-1 lg:flex"
+                >
+                    {navigation.map(item => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            end={item.to === '/'}
+                            className={navClass}
+                        >
+                            {item.label}
+                        </NavLink>
+                    ))}
                 </nav>
 
-                {/* Кнопки */}
-                <div className="flex items-center gap-3">
+                {/* Кнопки праворуч */}
+                <div className="flex shrink-0 items-center gap-2">
+
+                    {/* Сезонний ефект */}
+                    <SeasonalEffectsToggle />
 
                     {/* Перемикач теми */}
                     <button
                         type="button"
                         onClick={toggleTheme}
-                        aria-label="Перемкнути тему"
-                        className="rounded-xl bg-gray-100 p-3 transition hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                        aria-label={
+                            isDark
+                                ? 'Увімкнути світлу тему'
+                                : 'Увімкнути темну тему'
+                        }
+                        title={
+                            isDark
+                                ? 'Світла тема'
+                                : 'Темна тема'
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 text-gray-700 transition hover:border-yellow-400 hover:bg-yellow-400 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-yellow-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:border-yellow-400 dark:hover:bg-yellow-400 dark:hover:text-gray-950"
                     >
-                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                        {isDark ? (
+                            <Sun size={20} />
+                        ) : (
+                            <Moon size={20} />
+                        )}
                     </button>
 
-                    {/* Телефон */}
-                    <button
-                        type="button"
-                        onClick={() => setIsPhoneOpen(!isPhoneOpen)}
-                        aria-expanded={isPhoneOpen}
-                        className="flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-3 font-semibold text-gray-900 transition hover:bg-yellow-500"
+                    {/* Телефони на комп'ютері */}
+                    <details className="group relative hidden sm:block">
+                        <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl bg-yellow-400 px-4 font-bold text-gray-950 transition hover:bg-yellow-500 [&::-webkit-details-marker]:hidden">
+                            <Phone size={18} />
+
+                            <span className="hidden xl:inline">
+                                Зателефонувати
+                            </span>
+
+                            <ChevronDown
+                                size={16}
+                                className="transition-transform group-open:rotate-180"
+                            />
+                        </summary>
+
+                        <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+
+                            <p className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                Оберіть номер телефону
+                            </p>
+
+                            {phoneNumbers.map(phone => (
+                                <a
+                                    key={phone.href}
+                                    href={phone.href}
+                                    className="flex items-center gap-3 rounded-xl px-3 py-3 font-semibold text-gray-900 transition hover:bg-yellow-50 dark:text-white dark:hover:bg-gray-800"
+                                >
+                                    <Phone
+                                        size={17}
+                                        className="text-yellow-500"
+                                    />
+
+                                    {phone.label}
+                                </a>
+                            ))}
+                        </div>
+                    </details>
+
+                    {/* Дзвінок на малих екранах */}
+                    <a
+                        href="tel:+380671002124"
+                        aria-label="Зателефонувати 067 100 21 24"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-gray-950 sm:hidden"
                     >
                         <Phone size={19} />
-                        <span className="hidden sm:inline">Зателефонувати</span>
-                    </button>
+                    </a>
 
                     {/* Мобільне меню */}
                     <button
                         type="button"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        aria-label={isMenuOpen ? 'Закрити меню' : 'Відкрити меню'}
-                        aria-expanded={isMenuOpen}
-                        className="rounded-xl bg-gray-100 p-3 md:hidden dark:bg-gray-800"
+                        onClick={() =>
+                            setIsMobileMenuOpen(previous => !previous)
+                        }
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-navigation"
+                        aria-label={
+                            isMobileMenuOpen
+                                ? 'Закрити меню'
+                                : 'Відкрити меню'
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 text-gray-900 transition hover:bg-yellow-400 lg:hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:text-gray-950"
                     >
-                        {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        {isMobileMenuOpen ? (
+                            <X size={22} />
+                        ) : (
+                            <Menu size={22} />
+                        )}
                     </button>
+
                 </div>
             </div>
 
-            {/* Вікно телефону */}
-            {isPhoneOpen && (
-                <div className="absolute right-4 top-full mt-3 w-72 animate-in rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:right-8">
-                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                        Зв'яжіться з нами
-                    </p>
-
-                    <p className="mb-4 text-xl font-bold">
-                        {PHONE_NUMBER}
-                    </p>
-
-                    <div className="flex gap-2">
-                        <a
-                            href={`tel:${PHONE_NUMBER}`}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-yellow-400 px-3 py-2 font-semibold text-gray-900 hover:bg-yellow-500"
-                        >
-                            <Phone size={16} />
-                            Дзвінок
-                        </a>
-
-                        <button
-                            type="button"
-                            onClick={copyPhone}
-                            aria-label="Скопіювати номер"
-                            className="rounded-lg bg-gray-100 p-3 dark:bg-gray-700"
-                        >
-                            {isCopied ? <Check size={18} /> : <Copy size={18} />}
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {/* Мобільна навігація */}
-            {isMenuOpen && (
+            {isMobileMenuOpen && (
                 <nav
+                    id="mobile-navigation"
                     aria-label="Мобільна навігація"
-                    className="border-t border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-900 md:hidden"
+                    className="border-t border-gray-200 bg-white px-4 py-4 lg:hidden dark:border-gray-800 dark:bg-gray-950"
                 >
-                    <ul className="flex flex-col gap-2">
-                        {navigation.map((item) => (
-                            <li key={item.href}>
-                                <a
-                                    href={item.href}
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="block rounded-lg px-4 py-3 font-medium transition hover:bg-yellow-400 hover:text-gray-900"
-                                >
-                                    {item.label}
-                                </a>
-                            </li>
+                    <div className="mx-auto flex max-w-7xl flex-col gap-2">
+
+                        {navigation.map(item => (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                end={item.to === '/'}
+                                onClick={() =>
+                                    setIsMobileMenuOpen(false)
+                                }
+                                className={navClass}
+                            >
+                                {item.label}
+                            </NavLink>
                         ))}
-                    </ul>
+
+                        <div className="mt-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+                            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Наші телефони
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                {phoneNumbers.map(phone => (
+                                    <a
+                                        key={phone.href}
+                                        href={phone.href}
+                                        className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"
+                                    >
+                                        <Phone
+                                            size={17}
+                                            className="text-yellow-500"
+                                        />
+
+                                        {phone.label}
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </nav>
             )}
         </header>

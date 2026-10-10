@@ -1,12 +1,12 @@
 
 import { Link } from 'react-router-dom';
-import { SeasonalEffectsToggle } from './SeasonalEffects';
+
 import {
+    ArrowUpRight,
     Clock3,
     MapPin,
     Phone,
     Truck,
-    ArrowUpRight,
 } from 'lucide-react';
 
 import {
@@ -85,7 +85,8 @@ export default function Footer() {
                             </h2>
 
                             <p className="mt-1 text-sm text-gray-400">
-                                Обирайте автомобіль — ми доставимо його у ваше місто.
+                                Обирайте автомобіль — ми доставимо
+                                його у ваше місто.
                             </p>
                         </div>
                     </div>
@@ -100,12 +101,16 @@ export default function Footer() {
                 </div>
             </div>
 
-            {/* Основна частина футера */}
+            {/* Основний футер */}
             <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
 
                 {/* Компанія */}
                 <div>
-                    <Link to="/" className="inline-block">
+                    <Link
+                        to="/"
+                        className="inline-block"
+                        aria-label="AutoMarket Rivne — головна"
+                    >
                         <img
                             src="/PhotoAutoMarket/LogoAutoMarketWhite.png"
                             alt="AutoMarket Rivne"
@@ -133,7 +138,6 @@ export default function Footer() {
                                     <span
                                         key={social.name}
                                         title={`${social.name}: посилання ще не додано`}
-                                        aria-label={`${social.name}: посилання ще не додано`}
                                         className="flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-lg bg-gray-900 text-gray-600"
                                     >
                                         <Icon size={19} />
@@ -156,9 +160,7 @@ export default function Footer() {
                         })}
                     </div>
                 </div>
-                <div className="mt-5">
-                    <SeasonalEffectsToggle />
-                </div>
+
                 {/* Навігація */}
                 <nav aria-label="Навігація у футері">
                     <h3 className="mb-6 text-xl font-bold text-yellow-400">
@@ -189,7 +191,7 @@ export default function Footer() {
                     </div>
                 </nav>
 
-                {/* Категорії автомобілів */}
+                {/* Категорії */}
                 <nav aria-label="Категорії автомобілів">
                     <h3 className="mb-6 text-xl font-bold text-yellow-400">
                         Каталог автомобілів
@@ -218,6 +220,7 @@ export default function Footer() {
 
                     <div className="space-y-5">
 
+                        {/* Телефони */}
                         <div className="flex items-start gap-3">
                             <Phone
                                 size={19}
@@ -241,6 +244,7 @@ export default function Footer() {
                             </div>
                         </div>
 
+                        {/* Розташування */}
                         <div className="flex items-start gap-3">
                             <MapPin
                                 size={19}
@@ -253,6 +257,7 @@ export default function Footer() {
                             </p>
                         </div>
 
+                        {/* Графік роботи */}
                         <div className="flex items-start gap-3">
                             <Clock3
                                 size={19}
@@ -273,6 +278,7 @@ export default function Footer() {
             {/* Нижня частина */}
             <div className="border-t border-gray-800">
                 <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 py-6 text-sm text-gray-500 sm:flex-row sm:px-6 lg:px-8">
+
                     <p>
                         © {currentYear} AutoMarket Rivne.
                         Усі права захищено.
@@ -281,6 +287,7 @@ export default function Footer() {
                     <p>
                         Комерційні автомобілі для вашого бізнесу
                     </p>
+
                 </div>
             </div>
         </footer>

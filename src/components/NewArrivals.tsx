@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 
 import VehicleCard from './VehicleCard';
+
 import type { Vehicle } from '../types/vehicle';
+import { getVehicleSlug } from '../utils/vehicleSlug';
 
 type NewArrivalsProps = {
     vehicles: Vehicle[];
@@ -19,6 +21,7 @@ export default function NewArrivals({
                                         vehicles,
                                     }: NewArrivalsProps) {
     const navigate = useNavigate();
+
     const carouselRef = useRef<HTMLDivElement>(null);
 
     // Найновіші додані автомобілі першими
@@ -47,6 +50,7 @@ export default function NewArrivals({
 
                 {/* Заголовок */}
                 <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+
                     <div>
                         <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
                             Нові надходження
@@ -58,8 +62,9 @@ export default function NewArrivals({
                     </div>
 
                     {/* Стрілки каруселі */}
-                    {vehicles.length > 1 && (
+                    {sortedVehicles.length > 1 && (
                         <div className="flex gap-3">
+
                             <button
                                 type="button"
                                 onClick={() => scrollCarousel('left')}
@@ -77,11 +82,12 @@ export default function NewArrivals({
                             >
                                 <ChevronRight size={22} />
                             </button>
+
                         </div>
                     )}
                 </div>
 
-                {/* Автомобілі */}
+                {/* Карусель автомобілів */}
                 {sortedVehicles.length > 0 ? (
                     <div
                         ref={carouselRef}
@@ -96,7 +102,9 @@ export default function NewArrivals({
                                 <VehicleCard
                                     vehicle={vehicle}
                                     onDetailsClick={selected => {
-                                        navigate(`/cars/${selected.id}`);
+                                        navigate(
+                                            `/cars/${getVehicleSlug(selected)}`
+                                        );
                                     }}
                                 />
                             </div>
@@ -108,17 +116,19 @@ export default function NewArrivals({
                     </p>
                 )}
 
-                {/* Посилання на каталог */}
+                {/* Перегляд усього каталогу */}
                 <div className="mt-6 flex justify-center">
+
                     <Link
                         to="/catalog"
                         className="inline-flex items-center gap-2 rounded-xl border-2 border-yellow-400 px-7 py-3 font-bold text-gray-900 transition hover:bg-yellow-400 hover:text-gray-950 dark:text-white"
                     >
                         Переглянути весь каталог
+
                         <ArrowUpRight size={19} />
                     </Link>
-                </div>
 
+                </div>
             </div>
         </section>
     );

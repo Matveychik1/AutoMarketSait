@@ -1,6 +1,7 @@
 
 import { Route, Routes } from 'react-router-dom';
 
+import SEOManager from './components/SEOManager';
 import SeasonalEffects from './components/SeasonalEffects';
 import { Header } from './components/Header';
 import HeroSlider from './components/HeroSlider';
@@ -207,19 +208,22 @@ function App() {
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950">
 
-            {/* Автоматично прокручує сторінки нагору */}
+            {/* Прокручування сторінок нагору */}
             <ScrollToTop />
 
-            {/* Сезонні ефекти: сніг, листя, Геловін */}
+            {/* SEO: заголовки та метадані сторінок */}
+            <SEOManager vehicles={testVehicles} />
+
+            {/* Сезонне оформлення сайту */}
             <SeasonalEffects />
 
             {/* Шапка сайту */}
             <Header />
 
-            {/* Маршрути сайту */}
+            {/* Маршрути */}
             <Routes>
 
-                {/* Головна сторінка */}
+                {/* Головна */}
                 <Route
                     path="/"
                     element={
@@ -235,7 +239,7 @@ function App() {
                     }
                 />
 
-                {/* Каталог */}
+                {/* Каталог автомобілів */}
                 <Route
                     path="/catalog"
                     element={
@@ -245,7 +249,7 @@ function App() {
                     }
                 />
 
-                {/* Сторінка окремого автомобіля */}
+                {/* Детальна сторінка автомобіля */}
                 <Route
                     path="/cars/:id"
                     element={

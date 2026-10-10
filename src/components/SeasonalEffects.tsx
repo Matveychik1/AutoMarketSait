@@ -1,6 +1,12 @@
 
-import { useEffect, useState } from 'react';
-import { Leaf, Snowflake, Flower2, Sun, EyeOff } from 'lucide-react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import {
+    EyeOff,
+    Flower2,
+    Leaf,
+    Snowflake,
+    Sun,
+} from 'lucide-react';
 
 import './SeasonalEffects.css';
 
@@ -12,7 +18,6 @@ type SeasonalTheme = {
 };
 
 const STORAGE_KEY = 'automarket-seasonal-effects';
-const SETTINGS_EVENT = 'automarket-seasonal-settings-change';
 
 function getCurrentTheme(): SeasonalTheme {
     const month = new Date().getMonth();
@@ -32,7 +37,7 @@ function getCurrentTheme(): SeasonalTheme {
     return { season: 'winter', month };
 }
 
-function getSavedPreference(): boolean {
+function readSavedPreference(): boolean {
     try {
         return localStorage.getItem(STORAGE_KEY) !== 'false';
     } catch {
@@ -40,78 +45,98 @@ function getSavedPreference(): boolean {
     }
 }
 
-// Керує сезонним оформленням всього сайту
+// Спільний стан для сезонного фону і кнопки Header
+let effectsEnabled = readSavedPreference();
+
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+    listeners.add(listener);
+
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+function getSnapshot(): boolean {
+    return effectsEnabled;
+}
+
+function setEffectsEnabled(value: boolean) {
+    effectsEnabled = value;
+
+    try {
+        localStorage.setItem(STORAGE_KEY, String(value));
+    } catch {
+        // Перемикач працюватиме навіть без localStorage
+    }
+
+    listeners.forEach(listener => listener());
+}
+
+function useEffectsEnabled() {
+    return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+// Головний компонент керує CSS-оформленням
 export default function SeasonalEffects() {
+    const enabled = useEffectsEnabled();
     const [theme, setTheme] = useState(getCurrentTheme);
-    const [enabled, setEnabled] = useState(getSavedPreference);
 
-    // Оновлення при зміні налаштування
     useEffect(() => {
-        function updatePreference() {
-            setEnabled(getSavedPreference());
-        }
-
-        window.addEventListener(
-            SETTINGS_EVENT,
-            updatePreference
-        );
-
-        window.addEventListener(
-            'storage',
-            updatePreference
-        );
-
-        return () => {
-            window.removeEventListener(
-                SETTINGS_EVENT,
-                updatePreference
-            );
-
-            window.removeEventListener(
-                'storage',
-                updatePreference
-            );
-        };
-    }, []);
-
-    // Автоматична зміна сезону
-    useEffect(() => {
-        function checkSeason() {
-            const nextTheme = getCurrentTheme();
+        function updateSeason() {
+            const next = getCurrentTheme();
 
             setTheme(previous => {
                 if (
-                    previous.month === nextTheme.month &&
-                    previous.season === nextTheme.season
+                    previous.month === next.month &&
+                    previous.season === next.season
                 ) {
                     return previous;
                 }
 
-                return nextTheme;
+                return next;
             });
         }
 
+        function syncFromStorage(event: StorageEvent) {
+            if (event.key === STORAGE_KEY || event.key === null) {
+                const next = readSavedPreference();
+
+                if (next !== effectsEnabled) {
+                    effectsEnabled = next;
+                    listeners.forEach(listener => listener());
+                }
+            }
+        }
+
         const interval = window.setInterval(
-            checkSeason,
+            updateSeason,
             60 * 60 * 1000
         );
 
         document.addEventListener(
             'visibilitychange',
-            checkSeason
+            updateSeason
         );
+
+        window.addEventListener('storage', syncFromStorage);
 
         return () => {
             window.clearInterval(interval);
 
             document.removeEventListener(
                 'visibilitychange',
-                checkSeason
+                updateSeason
+            );
+
+            window.removeEventListener(
+                'storage',
+                syncFromStorage
             );
         };
     }, []);
 
-    // Встановлення CSS-атрибутів на HTML
     useEffect(() => {
         const root = document.documentElement;
 
@@ -136,47 +161,37 @@ export default function SeasonalEffects() {
     return null;
 }
 
-// Окрема кнопка для футера
+// Компактна кнопка для Header
 export function SeasonalEffectsToggle() {
-    const [enabled, setEnabled] = useState(getSavedPreference);
+    const enabled = useEffectsEnabled();
     const [theme, setTheme] = useState(getCurrentTheme);
 
     useEffect(() => {
-        function sync() {
-            setEnabled(getSavedPreference());
+        function updateSeason() {
             setTheme(getCurrentTheme());
         }
 
-        window.addEventListener(SETTINGS_EVENT, sync);
-        window.addEventListener('storage', sync);
+        const interval = window.setInterval(
+            updateSeason,
+            60 * 60 * 1000
+        );
+
+        document.addEventListener(
+            'visibilitychange',
+            updateSeason
+        );
 
         return () => {
-            window.removeEventListener(SETTINGS_EVENT, sync);
-            window.removeEventListener('storage', sync);
+            window.clearInterval(interval);
+
+            document.removeEventListener(
+                'visibilitychange',
+                updateSeason
+            );
         };
     }, []);
 
-    function toggleEffects() {
-        const nextValue = !enabled;
-
-        try {
-            localStorage.setItem(
-                STORAGE_KEY,
-                String(nextValue)
-            );
-        } catch {
-            // Якщо localStorage недоступний,
-            // повідомляємо про зміну через подію.
-        }
-
-        setEnabled(nextValue);
-
-        window.dispatchEvent(
-            new Event(SETTINGS_EVENT)
-        );
-    }
-
-    const seasonIcons = {
+    const icons = {
         spring: Flower2,
         summer: Sun,
         autumn: Leaf,
@@ -184,24 +199,30 @@ export function SeasonalEffectsToggle() {
     };
 
     const Icon = enabled
-        ? seasonIcons[theme.season]
+        ? icons[theme.season]
         : EyeOff;
 
     return (
         <button
             type="button"
-            onClick={toggleEffects}
+            onClick={() => setEffectsEnabled(!enabled)}
             aria-pressed={enabled}
-            className="inline-flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-sm font-medium text-gray-300 transition hover:border-yellow-400 hover:text-white"
+            aria-label={
+                enabled
+                    ? 'Вимкнути сезонні ефекти'
+                    : 'Увімкнути сезонні ефекти'
+            }
+            title={
+                enabled
+                    ? 'Вимкнути сезонні ефекти'
+                    : 'Увімкнути сезонні ефекти'
+            }
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-100 text-gray-700 transition hover:border-yellow-400 hover:bg-yellow-400 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-yellow-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:border-yellow-400 dark:hover:bg-yellow-400 dark:hover:text-gray-950"
         >
             <Icon
-                size={19}
-                className={enabled ? 'text-yellow-400' : 'text-gray-500'}
+                size={20}
+                className={enabled ? 'text-yellow-500' : ''}
             />
-
-            <span>
-                Сезонний фон: {enabled ? 'Увімкнено' : 'Вимкнено'}
-            </span>
         </button>
     );
 }
