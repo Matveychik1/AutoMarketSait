@@ -11,7 +11,7 @@ import {
     X,
 } from 'lucide-react';
 
-import { SeasonalEffectsToggle } from './SeasonalEffects';
+import { SeasonalEffectsToggle } from '../seasonal/SeasonalEffects.tsx';
 
 const phoneNumbers = [
     {

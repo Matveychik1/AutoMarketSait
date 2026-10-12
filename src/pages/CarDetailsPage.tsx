@@ -7,25 +7,36 @@ import {
 
 import {
     ArrowLeft,
+    ArrowRight,
     Phone,
     Truck,
 } from 'lucide-react';
 
-import VehicleGallery from '../components/VehicleGallery';
-import VehicleSpecifications from '../components/VehicleSpecifications';
-import BodyDimensions from '../components/BodyDimensions';
-import VehicleEquipment from '../components/VehicleEquipment';
+import VehicleGallery from '../components/vehicle/VehicleGallery';
+import VehicleSpecifications from '../components/vehicle/VehicleSpecifications';
+import BodyDimensions from '../components/vehicle/BodyDimensions';
+import VehicleEquipment from '../components/vehicle/VehicleEquipment';
+import VehicleStatusBanner from '../components/vehicle/VehicleStatusBanner';
 
 import type { Vehicle } from '../types/vehicle';
+import { getVehicleStatus } from '../types/vehicleStatus';
 
 import {
     getVehicleIdFromSlug,
     getVehicleSlug,
 } from '../utils/vehicleSlug';
 
+// ========================================
+// ТИПИ
+// ========================================
+
 type Props = {
     vehicles: Vehicle[];
 };
+
+// ========================================
+// ФОРМАТУВАННЯ ЦІНИ
+// ========================================
 
 const priceFormatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -33,10 +44,14 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 0,
 });
 
+// ========================================
+// ГОЛОВНИЙ КОМПОНЕНТ
+// ========================================
+
 export default function CarDetailsPage({
                                            vehicles,
                                        }: Props) {
-    // Параметр може бути ID або повним slug
+    // ID або SEO-friendly slug з адреси
     const { id } = useParams<{ id: string }>();
 
     const vehicleId = getVehicleIdFromSlug(id);
@@ -45,21 +60,31 @@ export default function CarDetailsPage({
         car => car.id === vehicleId
     );
 
-    // Якщо автомобіль відсутній
+    // ========================================
+    // АВТОМОБІЛЬ НЕ ЗНАЙДЕНО
+    // ========================================
+
+    // Приховані автомобілі теж не потрапляють сюди,
+    // оскільки App.tsx передає лише publicVehicles.
     if (!vehicle) {
         return (
             <main className="am-seasonal-surface min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
-
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                         Автомобіль не знайдено
                     </h1>
 
+                    <p className="mt-3 text-gray-500 dark:text-gray-400">
+                        Можливо, оголошення більше недоступне.
+                        Перегляньте актуальні автомобілі в каталозі.
+                    </p>
+
                     <Link
                         to="/catalog"
-                        className="mt-6 inline-block rounded-xl bg-yellow-400 px-6 py-3 font-bold text-gray-950"
+                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 font-bold text-gray-950 transition hover:bg-yellow-500"
                     >
+                        <ArrowLeft size={18} />
                         Повернутися до каталогу
                     </Link>
 
@@ -68,10 +93,14 @@ export default function CarDetailsPage({
         );
     }
 
-    // Правильна адреса автомобіля
+    // ========================================
+    // ПРАВИЛЬНИЙ URL
+    // ========================================
+
     const canonicalSlug = getVehicleSlug(vehicle);
 
-    // Старі URL /cars/1 автоматично перенаправляються
+    // Старі посилання типу /cars/1
+    // автоматично перенаправляємо.
     if (id !== canonicalSlug) {
         return (
             <Navigate
@@ -81,25 +110,48 @@ export default function CarDetailsPage({
         );
     }
 
-    // Фотографії автомобіля
+    // ========================================
+    // СТАТУС АВТОМОБІЛЯ
+    // ========================================
+
+    const status = getVehicleStatus(vehicle.status);
+
+    const isAvailable = status === 'available';
+    const isReserved = status === 'reserved';
+    const isSold = status === 'sold';
+
+    // ========================================
+    // ФОТОГРАФІЇ
+    // ========================================
+
     const images =
         vehicle.images && vehicle.images.length > 0
             ? vehicle.images
             : [vehicle.image];
 
-    // Перевіряємо ID YouTube відео
+    // ========================================
+    // YOUTUBE
+    // ========================================
+
     const youtubeId =
         vehicle.youtubeVideoId &&
         /^[a-zA-Z0-9_-]{11}$/.test(vehicle.youtubeVideoId)
             ? vehicle.youtubeVideoId
             : null;
 
+    // ========================================
+    // СТОРІНКА АВТОМОБІЛЯ
+    // ========================================
+
     return (
         <main className="am-seasonal-surface min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
 
             <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                {/* Повернення до каталогу */}
+                {/* ===================================
+                    ПОВЕРНЕННЯ ДО КАТАЛОГУ
+                =================================== */}
+
                 <Link
                     to="/catalog"
                     className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-yellow-600 dark:text-gray-300"
@@ -109,7 +161,10 @@ export default function CarDetailsPage({
                     Назад до каталогу
                 </Link>
 
-                {/* Заголовок автомобіля */}
+                {/* ===================================
+                    ЗАГОЛОВОК
+                =================================== */}
+
                 <div className="mb-8">
 
                     <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
@@ -122,9 +177,16 @@ export default function CarDetailsPage({
 
                 </div>
 
+                {/* ===================================
+                    ОСНОВНА СІТКА
+                =================================== */}
+
                 <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
 
-                    {/* Ліва частина сторінки */}
+                    {/* ===================================
+                        ЛІВА ЧАСТИНА
+                    =================================== */}
+
                     <div className="min-w-0 space-y-8">
 
                         {/* Фотогалерея */}
@@ -149,7 +211,10 @@ export default function CarDetailsPage({
                             equipment={vehicle.equipment}
                         />
 
-                        {/* Опис автомобіля */}
+                        {/* ===================================
+                            ОПИС АВТОМОБІЛЯ
+                        =================================== */}
+
                         {vehicle.description && (
                             <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
 
@@ -164,7 +229,10 @@ export default function CarDetailsPage({
                             </section>
                         )}
 
-                        {/* Відеоогляд YouTube */}
+                        {/* ===================================
+                            YOUTUBE ВІДЕООГЛЯД
+                        =================================== */}
+
                         {youtubeId && (
                             <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
 
@@ -200,60 +268,152 @@ export default function CarDetailsPage({
 
                     </div>
 
-                    {/* Права частина: ціна та контакти */}
+                    {/* ===================================
+                        ПРАВА ЧАСТИНА:
+                        ЦІНА, СТАТУС І КОНТАКТИ
+                    =================================== */}
+
                     <aside className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900 lg:sticky lg:top-24">
 
+                        {/* Ціна */}
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Ціна автомобіля
+                            {isSold
+                                ? 'Остання вказана ціна'
+                                : 'Ціна автомобіля'}
                         </p>
 
                         <p className="mt-2 text-4xl font-extrabold text-gray-950 dark:text-white">
                             {priceFormatter.format(vehicle.price)}
                         </p>
 
-                        {/* Безкоштовна доставка */}
-                        <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-400/40 bg-yellow-50 p-3 dark:bg-yellow-400/10">
+                        {/* ===================================
+                            СТАТУС АВТОМОБІЛЯ
+                        =================================== */}
 
-                            <Truck
-                                size={20}
-                                className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400"
+                        <div className="mt-5">
+                            <VehicleStatusBanner
+                                status={status}
                             />
-
-                            <p className="text-sm font-semibold text-gray-900 dark:text-yellow-300">
-                                Безкоштовна доставка по всій Україні
-                            </p>
-
                         </div>
 
-                        {/* Телефони */}
-                        <div className="mt-6 space-y-3">
+                        {/* ===================================
+                            АВТО У НАЯВНОСТІ
+                        =================================== */}
 
-                            <a
-                                href="tel:+380671002124"
-                                className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 font-bold text-gray-950 transition hover:bg-yellow-500"
-                            >
-                                <Phone size={19} />
-                                067 100 21 24
-                            </a>
+                        {isAvailable && (
+                            <>
+                                {/* Безкоштовна доставка */}
+                                <div className="mt-5 flex items-start gap-3 rounded-xl border border-yellow-400/40 bg-yellow-50 p-3 dark:bg-yellow-400/10">
 
-                            <a
-                                href="tel:+380502002124"
-                                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-4 font-semibold text-gray-900 transition hover:border-yellow-400 dark:border-gray-700 dark:text-white"
-                            >
-                                <Phone size={19} />
-                                050 200 21 24
-                            </a>
+                                    <Truck
+                                        size={20}
+                                        className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400"
+                                    />
 
-                        </div>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-yellow-300">
+                                        Безкоштовна доставка по всій Україні
+                                    </p>
 
-                        <p className="mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
+                                </div>
+
+                                {/* Контакти */}
+                                <div className="mt-6 space-y-3">
+
+                                    <a
+                                        href="tel:+380671002124"
+                                        className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 font-bold text-gray-950 transition hover:bg-yellow-500"
+                                    >
+                                        <Phone size={19} />
+                                        067 100 21 24
+                                    </a>
+
+                                    <a
+                                        href="tel:+380502002124"
+                                        className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-4 font-semibold text-gray-900 transition hover:border-yellow-400 dark:border-gray-700 dark:text-white"
+                                    >
+                                        <Phone size={19} />
+                                        050 200 21 24
+                                    </a>
+
+                                </div>
+                            </>
+                        )}
+
+                        {/* ===================================
+                            ЗАВДАТКОВАНИЙ АВТОМОБІЛЬ
+                        =================================== */}
+
+                        {isReserved && (
+                            <div className="mt-6 space-y-4">
+
+                                <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                                    Автомобіль зарезервований за покупцем.
+                                    Для уточнення його статусу або підбору
+                                    схожого автомобіля зв'яжіться з нами.
+                                </p>
+
+                                <a
+                                    href="tel:+380671002124"
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 font-bold text-gray-950 transition hover:bg-yellow-500"
+                                >
+                                    <Phone size={19} />
+                                    Уточнити інформацію
+                                </a>
+
+                                <a
+                                    href="tel:+380502002124"
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-4 font-semibold text-gray-900 transition hover:border-yellow-400 dark:border-gray-700 dark:text-white"
+                                >
+                                    <Phone size={19} />
+                                    050 200 21 24
+                                </a>
+
+                                <Link
+                                    to="/catalog"
+                                    className="flex items-center justify-center gap-2 py-2 text-sm font-bold text-yellow-600 transition hover:underline dark:text-yellow-400"
+                                >
+                                    Інші автомобілі
+                                    <ArrowRight size={17} />
+                                </Link>
+
+                            </div>
+                        )}
+
+                        {/* ===================================
+                            ПРОДАНИЙ АВТОМОБІЛЬ
+                        =================================== */}
+
+                        {isSold && (
+                            <div className="mt-6 space-y-4">
+
+                                <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                                    Цей автомобіль уже знайшов свого власника.
+                                    Перегляньте інші доступні пропозиції
+                                    AutoMarket Rivne.
+                                </p>
+
+                                <Link
+                                    to="/catalog"
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-4 text-center font-bold text-gray-950 transition hover:bg-yellow-500"
+                                >
+                                    Переглянути інші автомобілі
+                                    <ArrowRight size={19} />
+                                </Link>
+
+                            </div>
+                        )}
+
+                        {/* Нижній підпис */}
+                        <p className="mt-6 border-t border-gray-100 pt-5 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                             AutoMarket Rivne
                         </p>
 
                     </aside>
 
                 </div>
+
             </div>
+
         </main>
     );
 }

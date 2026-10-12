@@ -8,10 +8,10 @@ import {
     ArrowUpRight,
 } from 'lucide-react';
 
-import VehicleCard from './VehicleCard';
+import VehicleCard from '../vehicle/VehicleCard.tsx';
 
-import type { Vehicle } from '../types/vehicle';
-import { getVehicleSlug } from '../utils/vehicleSlug';
+import type { Vehicle } from '../../types/vehicle.ts';
+import { getVehicleSlug } from '../../utils/vehicleSlug.ts';
 
 type NewArrivalsProps = {
     vehicles: Vehicle[];

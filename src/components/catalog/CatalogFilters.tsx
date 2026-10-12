@@ -9,7 +9,7 @@ import {
     ChevronUp,
 } from 'lucide-react';
 
-import BodyTypeSelector from '../BodyTypeSelector';
+import BodyTypeSelector from './BodyTypeSelector.tsx';
 
 import type {
     CatalogFilters as Filters,

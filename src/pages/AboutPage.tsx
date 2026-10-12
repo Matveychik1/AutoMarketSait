@@ -13,8 +13,8 @@ import {
     PackageCheck,
 } from 'lucide-react';
 
-import ExperienceCounter from '../components/ExperienceCounter';
-import ContactSection from '../components/ContactSection';
+import ExperienceCounter from '../components/about/ExperienceCounter.tsx';
+import ContactSection from '../components/shared/ContactSection.tsx';
 
 // ========================================
 // ФОТОГРАФІЇ АВТОМАЙДАНЧИКА

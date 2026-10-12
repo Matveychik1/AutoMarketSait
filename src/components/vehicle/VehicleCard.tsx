@@ -1,12 +1,25 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ImageOff } from 'lucide-react';
 
-import type { Vehicle } from '../types/vehicle';
-import { getVehicleSlug } from '../utils/vehicleSlug';
+import {
+    ImageOff,
+    CheckCircle2,
+    LockKeyhole,
+} from 'lucide-react';
 
-// Необов'язкове зменшене фото для майбутнього API
+import type { Vehicle } from '../../types/vehicle';
+import { getVehicleSlug } from '../../utils/vehicleSlug';
+
+import {
+    getVehicleStatus,
+} from '../../types/vehicleStatus';
+
+// ========================================
+// ТИПИ
+// ========================================
+
+// Необов'язкове оптимізоване фото для майбутнього API
 type VehicleWithThumbnail = Vehicle & {
     thumbnailUrl?: string;
 };
@@ -16,6 +29,10 @@ type VehicleCardProps = {
     onDetailsClick?: (vehicle: Vehicle) => void;
 };
 
+// ========================================
+// ФОРМАТУВАННЯ
+// ========================================
+
 const priceFormatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -23,6 +40,10 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 });
 
 const numberFormatter = new Intl.NumberFormat('uk-UA');
+
+// ========================================
+// ГОЛОВНИЙ КОМПОНЕНТ
+// ========================================
 
 export default function VehicleCard({
                                         vehicle,
@@ -46,12 +67,29 @@ export default function VehicleCard({
         image,
     } = vehicle;
 
-    // Якщо є окрема оптимізована обкладинка,
-    // використовуємо її замість оригіналу
+    // ========================================
+    // СТАТУС АВТОМОБІЛЯ
+    // ========================================
+
+    const status = getVehicleStatus(vehicle.status);
+
+    const isReserved = status === 'reserved';
+    const isSold = status === 'sold';
+
+    // ========================================
+    // ФОТОГРАФІЯ
+    // ========================================
+
+    // Якщо є оптимізована обкладинка,
+    // використовуємо її замість оригіналу.
     const coverImage = vehicle.thumbnailUrl || image;
 
     const imageHasError =
         !coverImage || failedImage === coverImage;
+
+    // ========================================
+    // ПЕРЕХІД НА СТОРІНКУ АВТО
+    // ========================================
 
     function handleDetailsClick() {
         if (onDetailsClick) {
@@ -59,7 +97,6 @@ export default function VehicleCard({
             return;
         }
 
-        // Запасний перехід, якщо callback не переданий
         navigate(`/cars/${getVehicleSlug(vehicle)}`);
     }
 
@@ -95,10 +132,58 @@ export default function VehicleCard({
                     />
                 )}
 
-                {/* Рік випуску */}
+                {/* ===================================
+                    РІК ВИПУСКУ
+                =================================== */}
+
                 <span className="absolute left-3 top-3 rounded-lg bg-yellow-400 px-3 py-1 text-xs font-bold text-gray-950 shadow-md">
                     {year}
                 </span>
+
+                {/* ===================================
+                    СТАТУС: ЗАВДАТКОВАНИЙ
+                =================================== */}
+
+                {isReserved && (
+                    <span
+                        className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-500 px-2.5 py-1.5 text-[11px] font-extrabold text-gray-950 shadow-lg sm:px-3 sm:text-xs"
+                        title="За автомобіль внесено завдаток"
+                    >
+                        <LockKeyhole
+                            size={14}
+                            className="shrink-0"
+                        />
+
+                        Завдаткований
+                    </span>
+                )}
+
+                {/* ===================================
+                    СТАТУС: ПРОДАНО
+                =================================== */}
+
+                {isSold && (
+                    <>
+                        {/* Легке затемнення фотографії */}
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 bg-gray-950/25"
+                        />
+
+                        <span
+                            className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-gray-950/90 px-3 py-1.5 text-xs font-extrabold text-white shadow-lg"
+                            title="Автомобіль продано"
+                        >
+                            <CheckCircle2
+                                size={14}
+                                className="shrink-0"
+                            />
+
+                            Продано
+                        </span>
+                    </>
+                )}
+
             </div>
 
             {/* ===================================
@@ -109,6 +194,7 @@ export default function VehicleCard({
 
                 {/* Марка та модель */}
                 <div>
+
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                         {brand} {model}
                     </h3>
@@ -116,6 +202,7 @@ export default function VehicleCard({
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Комерційний автомобіль
                     </p>
+
                 </div>
 
                 {/* ===================================
@@ -139,7 +226,7 @@ export default function VehicleCard({
                         {engineVolume != null
                             ? `${engineVolume} л`
                             : fuelType === 'Дизель'
-                                ? 'Дизельнийдвигун'
+                                ? 'Дизельний двигун'
                                 : 'Не вказано'}
                     </li>
 
@@ -174,6 +261,7 @@ export default function VehicleCard({
                     </button>
 
                 </div>
+
             </div>
         </article>
     );

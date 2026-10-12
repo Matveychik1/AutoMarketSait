@@ -1,18 +1,46 @@
 
-import { Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
 
-import SEOManager from './components/SEOManager';
-import SeasonalEffects from './components/SeasonalEffects';
-import { Header } from './components/Header';
-import HeroSlider from './components/HeroSlider';
-import NewArrivals from './components/NewArrivals';
-import ContactSection from './components/ContactSection';
-import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
+import {
+    Route,
+    Routes,
+    useLocation,
+} from 'react-router-dom';
+
+// ========================================
+// ПУБЛІЧНИЙ САЙТ
+// ========================================
+
+import SEOManager from './components/shared/SEOManager';
+import SeasonalEffects from './components/seasonal/SeasonalEffects';
+
+import { Header } from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import ScrollToTop from './components/layout/ScrollToTop';
+
+import HeroSlider from './components/home/HeroSlider';
+import NewArrivals from './components/home/NewArrivals';
+
+import ContactSection from './components/shared/ContactSection';
 
 import CatalogPage from './pages/CatalogPage';
 import AboutPage from './pages/AboutPage';
 import CarDetailsPage from './pages/CarDetailsPage';
+
+// ========================================
+// АДМІН-ПАНЕЛЬ
+// ========================================
+
+import AdminLayout from './components/admin/AdminLayout';
+
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminCarsPage from './pages/admin/AdminCarsPage';
+import AdminNewCarPage from './pages/admin/AdminNewCarPage';
+import AdminEditCarPage from './pages/admin/AdminEditCarPage';
+
+// ========================================
+// ТИПИ
+// ========================================
 
 import type { Vehicle } from './types/vehicle';
 
@@ -80,6 +108,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Фургон',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-09',
 
@@ -128,6 +157,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Рефрижератор',
         engineVolume: 2.0,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-08',
         images: [
@@ -144,6 +174,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Тент',
         engineVolume: 2.0,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-07',
         images: [
@@ -160,6 +191,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-06',
         images: [
@@ -176,6 +208,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-05',
         images: [
@@ -192,6 +225,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -208,6 +242,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -224,6 +259,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -240,13 +276,13 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
             '/PhotoAutoMarket/box1.jpg',
         ],
     },
-
     {
         id: 10,
         brand: 'Mercedes-Benz',
@@ -257,6 +293,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -273,6 +310,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -289,6 +327,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -305,6 +344,7 @@ const testVehicles: Vehicle[] = [
         bodyType: 'Бортовий',
         engineVolume: 2.2,
         fuelType: 'Дизель',
+        status: 'available',
         image: '/PhotoAutoMarket/box1.jpg',
         addedAt: '2026-10-04',
         images: [
@@ -318,23 +358,92 @@ const testVehicles: Vehicle[] = [
 // ========================================
 
 function App() {
+    const location = useLocation();
+
+    // ========================================
+    // ДАНІ АВТОМОБІЛІВ
+    // ========================================
+
+    // Тимчасове зберігання автомобілів у React.
+    // Після F5 дані повернуться до тестових.
+    const [vehicles, setVehicles] = useState<Vehicle[]>(
+        testVehicles
+    );
+
+    // ========================================
+    // АВТОМОБІЛІ ДЛЯ ПУБЛІЧНОГО САЙТУ
+    // ========================================
+
+    // Приховані автомобілі бачить тільки адмін.
+    const publicVehicles = vehicles.filter(
+        vehicle => vehicle.status !== 'hidden'
+    );
+
+    // ========================================
+    // ЗБЕРЕЖЕННЯ ЗМІН АВТОМОБІЛЯ
+    // ========================================
+
+    function saveVehicle(updatedVehicle: Vehicle) {
+        setVehicles(previous =>
+            previous.map(vehicle =>
+                vehicle.id === updatedVehicle.id
+                    ? updatedVehicle
+                    : vehicle
+            )
+        );
+    }
+
+    // ========================================
+    // ДОДАВАННЯ НОВОГО АВТОМОБІЛЯ
+    // ========================================
+
+    function addVehicle(newVehicle: Vehicle) {
+        setVehicles(previous => [
+            ...previous,
+            newVehicle,
+        ]);
+    }
+
+    // ========================================
+    // ПЕРЕВІРКА МАРШРУТУ
+    // ========================================
+
+    const isAdminRoute =
+        location.pathname === '/admin' ||
+        location.pathname.startsWith('/admin/');
+
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950">
 
-            {/* Прокручування сторінок нагору */}
+            {/* Прокручування сторінок догори */}
             <ScrollToTop />
 
-            {/* SEO: заголовки та метадані сторінок */}
-            <SEOManager vehicles={testVehicles} />
+            {/* ========================================
+                ПУБЛІЧНІ КОМПОНЕНТИ
+            ======================================== */}
 
-            {/* Сезонне оформлення сайту */}
-            <SeasonalEffects />
+            {!isAdminRoute && (
+                <>
+                    {/* SEO */}
+                    <SEOManager vehicles={publicVehicles} />
 
-            {/* Шапка сайту */}
-            <Header />
+                    {/* Сезонні ефекти */}
+                    <SeasonalEffects />
 
-            {/* Маршрути */}
+                    {/* Шапка сайту */}
+                    <Header />
+                </>
+            )}
+
+            {/* ========================================
+                МАРШРУТИ
+            ======================================== */}
+
             <Routes>
+
+                {/* ===================================
+                    ПУБЛІЧНИЙ САЙТ
+                =================================== */}
 
                 {/* Головна */}
                 <Route
@@ -344,7 +453,7 @@ function App() {
                             <HeroSlider slides={slides} />
 
                             <NewArrivals
-                                vehicles={testVehicles}
+                                vehicles={publicVehicles}
                             />
 
                             <ContactSection />
@@ -357,7 +466,7 @@ function App() {
                     path="/catalog"
                     element={
                         <CatalogPage
-                            vehicles={testVehicles}
+                            vehicles={publicVehicles}
                         />
                     }
                 />
@@ -367,7 +476,7 @@ function App() {
                     path="/cars/:id"
                     element={
                         <CarDetailsPage
-                            vehicles={testVehicles}
+                            vehicles={publicVehicles}
                         />
                     }
                 />
@@ -378,10 +487,68 @@ function App() {
                     element={<AboutPage />}
                 />
 
+                {/* ===================================
+                    АДМІН-ПАНЕЛЬ
+                =================================== */}
+
+                <Route
+                    path="/admin"
+                    element={<AdminLayout />}
+                >
+
+                    {/* Головна панель адміністратора */}
+                    <Route
+                        index
+                        element={
+                            <AdminDashboard
+                                vehicles={vehicles}
+                            />
+                        }
+                    />
+
+                    {/* Список автомобілів */}
+                    <Route
+                        path="cars"
+                        element={
+                            <AdminCarsPage
+                                vehicles={vehicles}
+                            />
+                        }
+                    />
+
+                    {/* Додавання нового автомобіля */}
+
+                    <Route
+                        path="cars/new"
+                        element={
+                            <AdminNewCarPage
+                                vehicles={vehicles}
+                                onCreate={addVehicle}
+                            />
+                        }
+                    />
+
+
+                    {/* Редагування автомобіля */}
+                    <Route
+                        path="cars/:id/edit"
+                        element={
+                            <AdminEditCarPage
+                                vehicles={vehicles}
+                                onSave={saveVehicle}
+                            />
+                        }
+                    />
+
+                </Route>
+
             </Routes>
 
-            {/* Футер */}
-            <Footer />
+            {/* ========================================
+                ФУТЕР
+            ======================================== */}
+
+            {!isAdminRoute && <Footer />}
 
         </div>
     );

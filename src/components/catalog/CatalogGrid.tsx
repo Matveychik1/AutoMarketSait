@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 
-import VehicleCard from '../VehicleCard';
+import VehicleCard from '../vehicle/VehicleCard.tsx';
 
 import type { Vehicle } from '../../types/vehicle';
 

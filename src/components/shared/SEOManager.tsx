@@ -2,11 +2,11 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import type { Vehicle } from '../types/vehicle';
+import type { Vehicle } from '../../types/vehicle.ts';
 
 import {
     getVehicleIdFromSlug,
-} from '../utils/vehicleSlug';
+} from '../../utils/vehicleSlug.ts';
 
 type SEOManagerProps = {
     vehicles: Vehicle[];

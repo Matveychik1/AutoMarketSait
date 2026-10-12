@@ -10,7 +10,7 @@ import {
     Cog,
 } from 'lucide-react';
 
-import type { Vehicle } from '../types/vehicle';
+import type { Vehicle } from '../../types/vehicle.ts';
 
 type Props = {
     vehicle: Vehicle;

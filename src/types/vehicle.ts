@@ -1,4 +1,4 @@
-
+import type { VehicleStatus } from './vehicleStatus';
 export type Vehicle = {
     id: number;
     brand: string;
@@ -8,6 +8,7 @@ export type Vehicle = {
     mileage: number;
     bodyType: string;
     engineVolume: number | null;
+    status?: VehicleStatus;
 
     fuelType:
         | 'Дизель'
