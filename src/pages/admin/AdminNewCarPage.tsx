@@ -361,7 +361,7 @@ export default function AdminNewCarPage({
 
         if (
             !Number.isInteger(year) ||
-            year < 1900 ||
+            year < 2010 ||
             year > currentYear + 1
         ) {
             setFormError('Перевір рік випуску автомобіля.');

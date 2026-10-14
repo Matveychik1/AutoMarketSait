@@ -70,7 +70,7 @@ export default function AdminLayout() {
                     className="block"
                 >
                     <img
-                        src="/PhotoAutoMarket/LogoAutoMarketWhite.png"
+                        src="/PhotoAutoMarket/LogoAutoMarket.png"
                         alt="AutoMarket Rivne"
                         className="h-14 w-auto max-w-[200px] object-contain"
                     />
