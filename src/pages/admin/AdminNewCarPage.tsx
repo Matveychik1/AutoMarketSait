@@ -2,10 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import {
-    ArrowLeft,
-    Info,
-} from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 
 import AdminVehicleForm from '../../components/admin/AdminVehicleForm';
 import type {
@@ -19,18 +16,16 @@ import type {
 
 import type { Vehicle } from '../../types/vehicle';
 
-// ========================================
-// ТИПИ
-// ========================================
+import {
+    createCar,
+    toCarPayload,
+    uploadCarPhoto,
+} from '../../api/carsApi';
 
 type Props = {
     vehicles: Vehicle[];
     onCreate: (vehicle: Vehicle) => void;
 };
-
-// ========================================
-// НАЛАШТУВАННЯ ФОТО
-// ========================================
 
 const MAX_PHOTOS = 50;
 const MAX_PHOTO_SIZE = 15 * 1024 * 1024;
@@ -42,19 +37,9 @@ const ALLOWED_TYPES = new Set([
     'image/avif',
 ]);
 
-// ========================================
-// ДОПОМІЖНІ ФУНКЦІЇ
-// ========================================
-
-function optionalNumber(
-    value: string
-): number | undefined {
-    return value.trim() === ''
-        ? undefined
-        : Number(value);
-}
-
-function getYoutubeId(input: string): string | null {
+function normalizeYoutubeId(
+    input: string
+): string | null {
     const value = input.trim();
 
     if (!value) return null;
@@ -73,15 +58,13 @@ function getYoutubeId(input: string): string | null {
             return null;
         }
 
-        const hostname = url.hostname.toLowerCase();
+        const host = url.hostname.toLowerCase();
 
-        let videoId: string | null | undefined;
+        let id: string | null | undefined;
 
-        if (
-            hostname === 'youtu.be' ||
-            hostname === 'www.youtu.be'
-        ) {
-            videoId = url.pathname.split('/')[1];
+        if (host === 'youtu.be' ||
+            host === 'www.youtu.be') {
+            id = url.pathname.split('/')[1];
         } else if (
             [
                 'youtube.com',
@@ -89,10 +72,10 @@ function getYoutubeId(input: string): string | null {
                 'm.youtube.com',
                 'youtube-nocookie.com',
                 'www.youtube-nocookie.com',
-            ].includes(hostname)
+            ].includes(host)
         ) {
             if (url.pathname === '/watch') {
-                videoId = url.searchParams.get('v');
+                id = url.searchParams.get('v');
             } else {
                 const parts = url.pathname
                     .split('/')
@@ -103,66 +86,46 @@ function getYoutubeId(input: string): string | null {
                         parts[0]
                     )
                 ) {
-                    videoId = parts[1];
+                    id = parts[1];
                 }
             }
         }
 
-        return videoId &&
-        /^[A-Za-z0-9_-]{11}$/.test(videoId)
-            ? videoId
+        return id &&
+        /^[A-Za-z0-9_-]{11}$/.test(id)
+            ? id
             : null;
     } catch {
         return null;
     }
 }
 
-// ========================================
-// ГОЛОВНА СТОРІНКА ДОДАВАННЯ
-// ========================================
-
 export default function AdminNewCarPage({
-                                            vehicles,
                                             onCreate,
                                         }: Props) {
     const navigate = useNavigate();
 
-    // ========================================
-    // ФОТОГРАФІЇ
-    // ========================================
-
     const [photos, setPhotos] =
         useState<AdminVehiclePhoto[]>([]);
 
-    const [photoError, setPhotoError] =
-        useState('');
-
-    const [formError, setFormError] =
-        useState('');
+    const [photoError, setPhotoError] = useState('');
+    const [formError, setFormError] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const nextPhotoId = useRef(1);
-
-    // Тимчасові адреси фотографій
     const photoUrls = useRef(new Set<string>());
 
-    // Після збереження ці фото вже належать
-    // автомобілю в тестовому каталозі.
-    const keepPhotosAfterSave = useRef(false);
-
-    // Звільняємо пам'ять для незбережених фото,
-    // коли користувач залишає сторінку.
+    // Blob URL використовуємо тільки для прев'ю.
+    // Серверні фотографії матимуть постійні URL.
     useEffect(() => {
         const urls = photoUrls.current;
-        const keepRef = keepPhotosAfterSave;
 
         return () => {
-            if (!keepRef.current) {
-                urls.forEach(url => {
-                    URL.revokeObjectURL(url);
-                });
+            urls.forEach(url => {
+                URL.revokeObjectURL(url);
+            });
 
-                urls.clear();
-            }
+            urls.clear();
         };
     }, []);
 
@@ -170,11 +133,9 @@ export default function AdminNewCarPage({
         setFormError('');
     }
 
-    // ========================================
-    // ДОДАВАННЯ ФОТОГРАФІЙ
-    // ========================================
-
     function addPhotos(files: File[]) {
+        if (saving) return;
+
         clearMessages();
 
         const remaining = MAX_PHOTOS - photos.length;
@@ -190,7 +151,9 @@ export default function AdminNewCarPage({
         let skipped = 0;
 
         for (const file of files) {
-            const validType = ALLOWED_TYPES.has(file.type);
+            const validType = ALLOWED_TYPES.has(
+                file.type
+            );
 
             const validSize =
                 file.size > 0 &&
@@ -227,7 +190,7 @@ export default function AdminNewCarPage({
             ...newPhotos,
         ]);
 
-        if (skipped > 0) {
+        if (skipped) {
             setPhotoError(
                 `Пропущено ${skipped} фото. ` +
                 'Дозволені JPG, PNG, WebP, AVIF ' +
@@ -238,12 +201,12 @@ export default function AdminNewCarPage({
         }
     }
 
-    // ========================================
-    // ВИДАЛЕННЯ ФОТОГРАФІЇ
-    // ========================================
-
     function removePhoto(id: number) {
-        const photo = photos.find(item => item.id === id);
+        if (saving) return;
+
+        const photo = photos.find(
+            item => item.id === id
+        );
 
         if (photo) {
             URL.revokeObjectURL(photo.previewUrl);
@@ -258,11 +221,9 @@ export default function AdminNewCarPage({
         clearMessages();
     }
 
-    // ========================================
-    // ПЕРЕМІЩЕННЯ ФОТОГРАФІЇ
-    // ========================================
-
     function movePhoto(from: number, to: number) {
+        if (saving) return;
+
         if (
             from < 0 ||
             to < 0 ||
@@ -277,7 +238,6 @@ export default function AdminNewCarPage({
             const updated = [...previous];
 
             const [moved] = updated.splice(from, 1);
-
             updated.splice(to, 0, moved);
 
             return updated;
@@ -286,22 +246,17 @@ export default function AdminNewCarPage({
         clearMessages();
     }
 
-    // ========================================
-    // ВИБІР ГОЛОВНОГО ФОТО
-    // ========================================
-
     function setCoverPhoto(id: number) {
+        if (saving) return;
+
         setPhotos(previous => {
             const index = previous.findIndex(
                 photo => photo.id === id
             );
 
-            if (index <= 0) {
-                return previous;
-            }
+            if (index <= 0) return previous;
 
             const updated = [...previous];
-
             const [cover] = updated.splice(index, 1);
 
             return [cover, ...updated];
@@ -310,11 +265,9 @@ export default function AdminNewCarPage({
         clearMessages();
     }
 
-    // ========================================
-    // ОЧИЩЕННЯ ФОТОГРАФІЙ
-    // ========================================
-
     function resetPhotos() {
+        if (saving) return;
+
         photoUrls.current.forEach(url => {
             URL.revokeObjectURL(url);
         });
@@ -326,17 +279,14 @@ export default function AdminNewCarPage({
         setFormError('');
     }
 
-    // ========================================
-    // ЗБЕРЕЖЕННЯ НОВОГО АВТОМОБІЛЯ
-    // ========================================
-
-    function createVehicle(
+    async function createVehicle(
         values: AdminVehicleFormValues
     ) {
+        if (saving) return;
+
         setFormError('');
         setPhotoError('');
 
-        // Перевірка фотографій
         if (photos.length === 0) {
             setPhotoError(
                 'Додай хоча б одну фотографію автомобіля.'
@@ -352,7 +302,6 @@ export default function AdminNewCarPage({
             return;
         }
 
-        // Перевірка основних значень
         const year = Number(values.year);
         const price = Number(values.price);
         const mileage = Number(values.mileage);
@@ -364,26 +313,32 @@ export default function AdminNewCarPage({
             year < 2010 ||
             year > currentYear + 1
         ) {
-            setFormError('Перевір рік випуску автомобіля.');
-            return;
-        }
-
-        if (!Number.isFinite(price) || price <= 0) {
             setFormError(
-                'Ціна має бути більшою за 0.'
+                'Перевір рік випуску автомобіля.'
             );
             return;
         }
 
         if (
-            !Number.isFinite(mileage) ||
-            mileage < 0
+            !Number.isFinite(price) ||
+            price <= 0
         ) {
-            setFormError('Перевір пробіг автомобіля.');
+            setFormError(
+                'Ціна має бути більшою за нуль.'
+            );
             return;
         }
 
-        // Перевірка необов'язкових числових полів
+        if (
+            !Number.isInteger(mileage) ||
+            mileage < 0
+        ) {
+            setFormError(
+                'Перевір пробіг автомобіля.'
+            );
+            return;
+        }
+
         const numericFields = [
             values.engineVolume,
             values.powerHp,
@@ -394,17 +349,15 @@ export default function AdminNewCarPage({
             values.height,
         ];
 
-        if (
-            numericFields.some(value =>
-                value.trim() !== '' &&
-                (
-                    !Number.isFinite(Number(value)) ||
-                    Number(value) < 0
-                )
+        if (numericFields.some(value =>
+            value.trim() !== '' &&
+            (
+                !Number.isFinite(Number(value)) ||
+                Number(value) < 0
             )
-        ) {
+        )) {
             setFormError(
-                'Технічні характеристики не можуть бути від’ємними.'
+                'Перевір технічні характеристики.'
             );
             return;
         }
@@ -414,18 +367,17 @@ export default function AdminNewCarPage({
             Number(values.engineVolume) <= 0
         ) {
             setFormError(
-                'Об’єм двигуна має бути більшим за 0.'
+                'Об’єм двигуна має бути більшим за нуль.'
             );
             return;
         }
 
-        // Перевірка YouTube
         const youtubeInput =
             values.youtubeVideoId.trim();
 
-        const youtubeId = youtubeInput
-            ? getYoutubeId(youtubeInput)
-            : undefined;
+        const youtubeId = normalizeYoutubeId(
+            youtubeInput
+        );
 
         if (youtubeInput && !youtubeId) {
             setFormError(
@@ -434,112 +386,59 @@ export default function AdminNewCarPage({
             return;
         }
 
-        // Наступний вільний ID
-        const nextVehicleId =
-            Math.max(0, ...vehicles.map(v => v.id)) + 1;
+        setSaving(true);
 
-        // Комплектація — один пункт на рядок
-        const equipment = values.equipment
-            .split('\n')
-            .map(item => item.trim())
-            .filter(Boolean);
+        try {
+            // 1. Завантажуємо фото на сервер.
+            // Порядок зберігається:
+            // перше фото — обкладинка.
+            const imageUrls: string[] = [];
 
-        // Розміри кузова
-        const dimensions = {
-            length: optionalNumber(values.length),
-            width: optionalNumber(values.width),
-            height: optionalNumber(values.height),
-        };
+            for (const photo of photos) {
+                const url = await uploadCarPhoto(
+                    photo.file
+                );
 
-        const hasDimensions = Object.values(
-            dimensions
-        ).some(value => value !== undefined);
+                imageUrls.push(url);
+            }
 
-        // Порядок фото зберігається:
-        // перше зображення — обкладинка.
-        const images = photos.map(
-            photo => photo.previewUrl
-        );
+            // 2. Формуємо дані автомобіля.
+            const payload = toCarPayload(
+                values,
+                imageUrls,
+                youtubeId
+            );
 
-        // ========================================
-        // НОВИЙ АВТОМОБІЛЬ
-        // ========================================
+            // 3. Записуємо автомобіль у PostgreSQL.
+            // ID автоматично створює база.
+            const savedVehicle = await createCar(
+                payload
+            );
 
-        const newVehicle: Vehicle = {
-            id: nextVehicleId,
+            // 4. Оновлюємо стан React.
+            onCreate(savedVehicle);
 
-            brand: values.brand.trim(),
-            model: values.model.trim(),
-
-            year,
-            price,
-            mileage,
-
-            bodyType: values.bodyType,
-            fuelType: values.fuelType,
-            status: values.status,
-
-            engineVolume: optionalNumber(
-                values.engineVolume
-            ) ?? null,
-
-            transmission:
-                values.transmission || undefined,
-
-            drivetrain:
-                values.drivetrain || undefined,
-
-            powerHp: optionalNumber(values.powerHp),
-
-            payloadKg: optionalNumber(
-                values.payloadKg
-            ),
-
-            grossWeightKg: optionalNumber(
-                values.grossWeightKg
-            ),
-
-            bodyDimensions: hasDimensions
-                ? dimensions
-                : undefined,
-
-            equipment,
-
-            description:
-                values.description.trim(),
-
-            youtubeVideoId: youtubeId ?? undefined,
-
-            image: images[0],
-            images,
-
-            addedAt: new Date().toISOString(),
-        };
-
-        // Передаємо автомобіль у стан App.tsx
-        onCreate(newVehicle);
-
-        // Фото залишаються доступними для каталогу,
-        // доки працює поточна сесія.
-        keepPhotosAfterSave.current = true;
-
-        // Повертаємося до списку
-        navigate('/admin/cars', {
-            state: {
-                savedVehicleId: newVehicle.id,
-                createdVehicle: true,
-            },
-        });
+            // 5. Повертаємося до списку.
+            navigate('/admin/cars', {
+                state: {
+                    savedVehicleId: savedVehicle.id,
+                    createdVehicle: true,
+                },
+            });
+        } catch (error) {
+            setFormError(
+                error instanceof Error
+                    ? error.message
+                    : 'Не вдалося зберегти автомобіль.'
+            );
+        } finally {
+            setSaving(false);
+        }
     }
-
-    // ========================================
-    // JSX
-    // ========================================
 
     return (
         <div className="space-y-7">
 
-            {/* Повернення */}
             <Link
                 to="/admin/cars"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-yellow-600 dark:text-gray-400"
@@ -548,7 +447,6 @@ export default function AdminNewCarPage({
                 Назад до автомобілів
             </Link>
 
-            {/* Заголовок */}
             <div>
                 <p className="text-sm font-bold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">
                     Керування каталогом
@@ -559,34 +457,47 @@ export default function AdminNewCarPage({
                 </h1>
 
                 <p className="mt-3 text-gray-500 dark:text-gray-400">
-                    Створи нове оголошення, заповни
-                    характеристики та додай фотографії.
+                    Заповни характеристики, додай фотографії
+                    та опублікуй автомобіль у каталозі.
                 </p>
             </div>
 
-            {/* Демо-попередження */}
-            <div className="flex items-start gap-3 rounded-xl border border-yellow-400/40 bg-yellow-50 p-4 dark:bg-yellow-400/10">
+            <div className="flex items-start gap-3 rounded-xl border border-green-400/40 bg-green-50 p-4 dark:bg-green-400/10">
                 <Info
                     size={21}
-                    className="mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400"
+                    className="mt-0.5 shrink-0 text-green-600 dark:text-green-400"
                 />
 
                 <div>
-                    <p className="font-bold text-gray-900 dark:text-yellow-400">
-                        Демонстраційне збереження
+                    <p className="font-bold text-gray-900 dark:text-green-400">
+                        Збереження на сервері
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">
-                        Новий автомобіль одразу з'явиться
-                        в каталозі, але після перезавантаження
-                        сторінки тестові дані відновляться.
+                        Дані зберігатимуться в PostgreSQL,
+                        а фотографії — на сервері.
+                        Після оновлення сторінки автомобіль
+                        залишиться в каталозі.
                     </p>
                 </div>
             </div>
 
-            {/* Спільна форма */}
+            {saving && (
+                <p
+                    role="status"
+                    className="rounded-xl border border-yellow-400/40 bg-yellow-50 p-4 font-semibold text-yellow-800 dark:bg-yellow-400/10 dark:text-yellow-300"
+                >
+                    Завантажуємо фотографії та зберігаємо
+                    автомобіль. Не закривай сторінку.
+                </p>
+            )}
+
             <AdminVehicleForm
-                submitLabel="Додати в каталог"
+                submitLabel={
+                    saving
+                        ? 'Зберігаємо...'
+                        : 'Додати в каталог'
+                }
                 onSubmit={createVehicle}
                 onReset={resetPhotos}
                 onDirty={clearMessages}
@@ -602,7 +513,6 @@ export default function AdminNewCarPage({
                 }
             />
 
-            {/* Повідомлення про помилку */}
             {formError && (
                 <p
                     role="alert"

@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 
 import type { Vehicle } from '../../types/vehicle';
+
 import { getVehicleSlug } from '../../utils/vehicleSlug';
+import { getCarThumbnailUrl } from '../../utils/carThumbnail';
 
 import {
     getVehicleStatus,
@@ -19,7 +21,6 @@ import {
 // ТИПИ
 // ========================================
 
-// Необов'язкове оптимізоване фото для майбутнього API
 type VehicleWithThumbnail = Vehicle & {
     thumbnailUrl?: string;
 };
@@ -51,9 +52,13 @@ export default function VehicleCard({
                                     }: VehicleCardProps) {
     const navigate = useNavigate();
 
-    const [failedImage, setFailedImage] = useState<string | null>(
-        null
-    );
+    // Запам'ятовуємо тільки ті URL,
+    // які справді не вдалося завантажити.
+    const [failedThumbnail, setFailedThumbnail] =
+        useState<string | null>(null);
+
+    const [failedOriginal, setFailedOriginal] =
+        useState<string | null>(null);
 
     const {
         brand,
@@ -77,18 +82,50 @@ export default function VehicleCard({
     const isSold = status === 'sold';
 
     // ========================================
-    // ФОТОГРАФІЯ
+    // ОПТИМІЗОВАНІ ФОТОГРАФІЇ
     // ========================================
 
-    // Якщо є оптимізована обкладинка,
-    // використовуємо її замість оригіналу.
-    const coverImage = vehicle.thumbnailUrl || image;
+    // Якщо сервер передав готову адресу прев'ю,
+    // використовуємо її.
+    //
+    // Інакше обчислюємо адресу з основного WebP.
+    const thumbnailUrl =
+        vehicle.thumbnailUrl ||
+        getCarThumbnailUrl(image);
 
+    // Якщо прев'ю немає або воно раніше
+    // не завантажилося, використовуємо оригінал.
+    const canUseThumbnail =
+        Boolean(thumbnailUrl) &&
+        thumbnailUrl !== image &&
+        failedThumbnail !== thumbnailUrl;
+
+    const coverImage = canUseThumbnail
+        ? thumbnailUrl
+        : image;
+
+    // Якщо основне фото теж недоступне,
+    // показуємо заглушку.
     const imageHasError =
-        !coverImage || failedImage === coverImage;
+        !coverImage ||
+        (
+            coverImage === image &&
+            failedOriginal === image
+        );
+
+    function handleImageError() {
+        if (coverImage !== image) {
+            // Прев'ю не знайдено.
+            // React перемкнеться на основне фото.
+            setFailedThumbnail(coverImage);
+        } else {
+            // Основне фото теж недоступне.
+            setFailedOriginal(image);
+        }
+    }
 
     // ========================================
-    // ПЕРЕХІД НА СТОРІНКУ АВТО
+    // ПЕРЕХІД НА СТОРІНКУ АВТОМОБІЛЯ
     // ========================================
 
     function handleDetailsClick() {
@@ -99,6 +136,10 @@ export default function VehicleCard({
 
         navigate(`/cars/${getVehicleSlug(vehicle)}`);
     }
+
+    // ========================================
+    // JSX
+    // ========================================
 
     return (
         <article className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl motion-reduce:transform-none dark:border-gray-700 dark:bg-gray-800">
@@ -127,7 +168,9 @@ export default function VehicleCard({
                         alt={`${brand} ${model}, ${year} рік`}
                         loading="lazy"
                         decoding="async"
-                        onError={() => setFailedImage(coverImage)}
+                        width={480}
+                        height={360}
+                        onError={handleImageError}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none"
                     />
                 )}
@@ -164,7 +207,6 @@ export default function VehicleCard({
 
                 {isSold && (
                     <>
-                        {/* Легке затемнення фотографії */}
                         <div
                             aria-hidden="true"
                             className="pointer-events-none absolute inset-0 bg-gray-950/25"
@@ -194,7 +236,6 @@ export default function VehicleCard({
 
                 {/* Марка та модель */}
                 <div>
-
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                         {brand} {model}
                     </h3>
@@ -202,7 +243,6 @@ export default function VehicleCard({
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Комерційний автомобіль
                     </p>
-
                 </div>
 
                 {/* ===================================

@@ -18,18 +18,14 @@ type CatalogPageProps = {
 export default function CatalogPage({
                                         vehicles,
                                     }: CatalogPageProps) {
-    // Уся логіка каталогу зберігається в hook
     const catalog = useCatalog(vehicles);
 
     return (
         <main className="am-seasonal-surface min-h-screen bg-gray-50 py-12 dark:bg-gray-950">
-
             <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                {/* Назва сторінки */}
                 <CatalogHeader />
 
-                {/* Пошук, фільтри, сортування */}
                 <CatalogFilters
                     key={catalog.filterKey}
                     appliedFilters={catalog.appliedFilters}
@@ -40,13 +36,11 @@ export default function CatalogPage({
                     onReset={catalog.resetFilters}
                 />
 
-                {/* Результати каталогу */}
                 <section
                     id="catalog-results"
                     aria-label="Автомобілі в каталозі"
                     className="scroll-mt-28"
                 >
-                    {/* Заголовок та кількість авто */}
                     <CatalogResultsHeader
                         totalVehicles={catalog.totalVehicles}
                         firstShown={catalog.firstShown}
@@ -54,19 +48,16 @@ export default function CatalogPage({
                         bodyType={catalog.appliedFilters.bodyType}
                     />
 
-                    {/* Картки автомобілів */}
                     <CatalogGrid
                         vehicles={catalog.paginatedVehicles}
                         onResetFilters={catalog.resetFilters}
                     />
 
-                    {/* Перемикання кожних 12 авто */}
                     <CatalogPagination
                         currentPage={catalog.currentPage}
                         totalPages={catalog.totalPages}
                         onPageChange={catalog.goToPage}
                     />
-
                 </section>
 
             </div>

@@ -11,10 +11,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("6cd89fec-c8ce-4b97-bdf4-cb71b2072763")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AutoMarket.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c9b4eafe12b16a2bf7aa3afda6d8ea072688c977")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0b3a3b2ba13dfef3320d2138aad85e4a4cc557ec")]
 [assembly: System.Reflection.AssemblyProductAttribute("AutoMarket.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AutoMarket.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,11 +1,16 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
     Route,
     Routes,
     useLocation,
 } from 'react-router-dom';
+
+import {
+    getAdminCars,
+    getPublicCars,
+} from './api/carsApi';
 
 // ========================================
 // ПУБЛІЧНИЙ САЙТ
@@ -37,6 +42,13 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCarsPage from './pages/admin/AdminCarsPage';
 import AdminNewCarPage from './pages/admin/AdminNewCarPage';
 import AdminEditCarPage from './pages/admin/AdminEditCarPage';
+
+// ========================================
+// АВТОРИЗАЦІЯ
+// ========================================
+
+import AdminGuard from './components/admin/AdminGuard';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 // ========================================
 // ТИПИ
@@ -94,315 +106,23 @@ const slides = [
 ];
 
 // ========================================
-// ТЕСТОВІ АВТОМОБІЛІ
+// ТИПИ ДЛЯ ЗАВАНТАЖЕННЯ ДАНИХ
 // ========================================
 
-const testVehicles: Vehicle[] = [
-    {
-        id: 1,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 314',
-        year: 2021,
-        price: 29800,
-        mileage: 200000,
-        bodyType: 'Фургон',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-09',
+type DataSource = 'public' | 'admin';
 
-        transmission: 'Механічна',
-        drivetrain: 'Задній',
-        powerHp: 163,
-        payloadKg: 1500,
-        grossWeightKg: 3500,
-
-        bodyDimensions: {
-            length: 3.6,
-            width: 2.2,
-            height: 2.1,
-        },
-
-        equipment: [
-            'Кондиціонер',
-            'Круїз-контроль',
-            'Камера заднього виду',
-            'Мультимедійна система',
-            'Електросклопідйомники',
-            'Центральний замок',
-            'Підігрів дзеркал',
-        ],
-
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-            '/PhotoAutoMarket/box1.jpg',
-            '/PhotoAutoMarket/box1.jpg',
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-
-        description:
-            'Mercedes-Benz Sprinter 314. ' +
-            'Тестовий опис автомобіля. ' +
-            'Тут буде детальна інформація про стан, ' +
-            'комплектацію, розміри кузова та обладнання.',
-    },
-    {
-        id: 2,
-        brand: 'Volkswagen',
-        model: 'Crafter',
-        year: 2017,
-        price: 23900,
-        mileage: 245000,
-        bodyType: 'Рефрижератор',
-        engineVolume: 2.0,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-08',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 3,
-        brand: 'MAN',
-        model: 'TGE',
-        year: 2020,
-        price: 27900,
-        mileage: 180000,
-        bodyType: 'Тент',
-        engineVolume: 2.0,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-07',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 4,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-06',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 5,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-05',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 6,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 7,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 8,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 9,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 10,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 11,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 12,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-    {
-        id: 13,
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter 316',
-        year: 2019,
-        price: 28900,
-        mileage: 210000,
-        bodyType: 'Бортовий',
-        engineVolume: 2.2,
-        fuelType: 'Дизель',
-        status: 'available',
-        image: '/PhotoAutoMarket/box1.jpg',
-        addedAt: '2026-10-04',
-        images: [
-            '/PhotoAutoMarket/box1.jpg',
-        ],
-    },
-];
+type VehiclesState = {
+    source: DataSource | null;
+    items: Vehicle[];
+    error: string;
+};
 
 // ========================================
-// ГОЛОВНИЙ КОМПОНЕНТ APP
+// ГОЛОВНИЙ КОМПОНЕНТ
 // ========================================
 
 function App() {
     const location = useLocation();
-
-    // ========================================
-    // ДАНІ АВТОМОБІЛІВ
-    // ========================================
-
-    // Тимчасове зберігання автомобілів у React.
-    // Після F5 дані повернуться до тестових.
-    const [vehicles, setVehicles] = useState<Vehicle[]>(
-        testVehicles
-    );
-
-    // ========================================
-    // АВТОМОБІЛІ ДЛЯ ПУБЛІЧНОГО САЙТУ
-    // ========================================
-
-    // Приховані автомобілі бачить тільки адмін.
-    const publicVehicles = vehicles.filter(
-        vehicle => vehicle.status !== 'hidden'
-    );
-
-    // ========================================
-    // ЗБЕРЕЖЕННЯ ЗМІН АВТОМОБІЛЯ
-    // ========================================
-
-    function saveVehicle(updatedVehicle: Vehicle) {
-        setVehicles(previous =>
-            previous.map(vehicle =>
-                vehicle.id === updatedVehicle.id
-                    ? updatedVehicle
-                    : vehicle
-            )
-        );
-    }
-
-    // ========================================
-    // ДОДАВАННЯ НОВОГО АВТОМОБІЛЯ
-    // ========================================
-
-    function addVehicle(newVehicle: Vehicle) {
-        setVehicles(previous => [
-            ...previous,
-            newVehicle,
-        ]);
-    }
 
     // ========================================
     // ПЕРЕВІРКА МАРШРУТУ
@@ -412,11 +132,216 @@ function App() {
         location.pathname === '/admin' ||
         location.pathname.startsWith('/admin/');
 
+    const isLoginPage =
+        location.pathname === '/admin/login';
+
+    // Публічний сайт та адмінка використовують
+    // різні API для завантаження автомобілів.
+    const dataSource: DataSource | null =
+        isLoginPage
+            ? null
+            : isAdminRoute
+                ? 'admin'
+                : 'public';
+
+    // ========================================
+    // СТАН АВТОМОБІЛІВ
+    // ========================================
+
+    const [vehiclesState, setVehiclesState] =
+        useState<VehiclesState>({
+            source: null,
+            items: [],
+            error: '',
+        });
+
+    // Не змішуємо публічні та адмінські дані.
+    const vehicles =
+        vehiclesState.source === dataSource
+            ? vehiclesState.items
+            : [];
+
+    const vehiclesLoading =
+        dataSource !== null &&
+        vehiclesState.source !== dataSource;
+
+    const vehiclesError =
+        vehiclesState.source === dataSource
+            ? vehiclesState.error
+            : '';
+
+    // ========================================
+    // ПУБЛІЧНІ АВТОМОБІЛІ
+    // ========================================
+
+    const publicVehicles = vehicles.filter(
+        vehicle => vehicle.status !== 'hidden'
+    );
+
+    // ========================================
+    // ЗАВАНТАЖЕННЯ З POSTGRESQL
+    // ========================================
+
+    useEffect(() => {
+        if (dataSource === null) {
+            return;
+        }
+
+        let cancelled = false;
+
+        async function loadVehicles() {
+            try {
+                const cars =
+                    dataSource === 'admin'
+                        ? await getAdminCars()
+                        : await getPublicCars();
+
+                if (cancelled) {
+                    return;
+                }
+
+                setVehiclesState({
+                    source: dataSource,
+                    items: cars,
+                    error: '',
+                });
+            } catch (error) {
+                if (cancelled) {
+                    return;
+                }
+
+                setVehiclesState({
+                    source: dataSource,
+                    items: [],
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : 'Не вдалося завантажити автомобілі.',
+                });
+            }
+        }
+
+        void loadVehicles();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [dataSource]);
+
+    // ========================================
+    // РЕДАГУВАННЯ АВТОМОБІЛЯ
+    // ========================================
+
+    function saveVehicle(updatedVehicle: Vehicle) {
+        setVehiclesState(previous => {
+            if (previous.source !== 'admin') {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                items: previous.items.map(vehicle =>
+                    vehicle.id === updatedVehicle.id
+                        ? updatedVehicle
+                        : vehicle
+                ),
+            };
+        });
+    }
+
+    // ========================================
+    // ДОДАВАННЯ АВТОМОБІЛЯ
+    // ========================================
+
+    function addVehicle(newVehicle: Vehicle) {
+        setVehiclesState(previous => {
+            if (previous.source !== 'admin') {
+                return previous;
+            }
+
+            const withoutDuplicate =
+                previous.items.filter(
+                    vehicle => vehicle.id !== newVehicle.id
+                );
+
+            return {
+                ...previous,
+                items: [
+                    newVehicle,
+                    ...withoutDuplicate,
+                ],
+            };
+        });
+    }
+
+    // ========================================
+    // ВИДАЛЕННЯ АВТОМОБІЛЯ
+    // ========================================
+
+    function removeVehicle(id: number) {
+        setVehiclesState(previous => {
+            if (previous.source !== 'admin') {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                items: previous.items.filter(
+                    vehicle => vehicle.id !== id
+                ),
+            };
+        });
+    }
+
+    // ========================================
+    // JSX
+    // ========================================
+
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950">
 
-            {/* Прокручування сторінок догори */}
+            {/* ========================================
+                ПРОКРУЧУВАННЯ СТОРІНКИ
+            ======================================== */}
+
             <ScrollToTop />
+
+            {/* ========================================
+                SEO ВСЬОГО САЙТУ
+                ТІЛЬКИ ОДИН SEOManager
+            ======================================== */}
+
+            <SEOManager
+                vehicles={publicVehicles}
+                loading={vehiclesLoading}
+                error={vehiclesError}
+            />
+
+            {/* ========================================
+                ЗАВАНТАЖЕННЯ АВТОМОБІЛІВ
+            ======================================== */}
+
+            {!isLoginPage && vehiclesLoading && (
+                <div
+                    role="status"
+                    className="border-b border-yellow-400/20 bg-yellow-50 px-5 py-3 text-center text-sm font-semibold text-gray-800 dark:bg-gray-900 dark:text-yellow-400"
+                >
+                    Завантажуємо автомобілі...
+                </div>
+            )}
+
+            {/* ========================================
+                ПОМИЛКА API
+            ======================================== */}
+
+            {!isLoginPage && vehiclesError && (
+                <div
+                    role="alert"
+                    className="border-b border-red-300 bg-red-50 px-5 py-3 text-center text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-300"
+                >
+                    {vehiclesError}
+                </div>
+            )}
 
             {/* ========================================
                 ПУБЛІЧНІ КОМПОНЕНТИ
@@ -424,13 +349,8 @@ function App() {
 
             {!isAdminRoute && (
                 <>
-                    {/* SEO */}
-                    <SEOManager vehicles={publicVehicles} />
-
-                    {/* Сезонні ефекти */}
                     <SeasonalEffects />
 
-                    {/* Шапка сайту */}
                     <Header />
                 </>
             )}
@@ -442,10 +362,9 @@ function App() {
             <Routes>
 
                 {/* ===================================
-                    ПУБЛІЧНИЙ САЙТ
+                    ГОЛОВНА СТОРІНКА
                 =================================== */}
 
-                {/* Головна */}
                 <Route
                     path="/"
                     element={
@@ -461,7 +380,10 @@ function App() {
                     }
                 />
 
-                {/* Каталог автомобілів */}
+                {/* ===================================
+                    КАТАЛОГ АВТОМОБІЛІВ
+                =================================== */}
+
                 <Route
                     path="/catalog"
                     element={
@@ -471,7 +393,10 @@ function App() {
                     }
                 />
 
-                {/* Детальна сторінка автомобіля */}
+                {/* ===================================
+                    ДЕТАЛЬНА СТОРІНКА АВТОМОБІЛЯ
+                =================================== */}
+
                 <Route
                     path="/cars/:id"
                     element={
@@ -481,22 +406,39 @@ function App() {
                     }
                 />
 
-                {/* Про компанію */}
+                {/* ===================================
+                    ПРО КОМПАНІЮ
+                =================================== */}
+
                 <Route
                     path="/about"
                     element={<AboutPage />}
                 />
 
                 {/* ===================================
-                    АДМІН-ПАНЕЛЬ
+                    СТОРІНКА ВХОДУ В АДМІНКУ
+                =================================== */}
+
+                <Route
+                    path="/admin/login"
+                    element={<AdminLoginPage />}
+                />
+
+                {/* ===================================
+                    ЗАХИЩЕНА АДМІН-ПАНЕЛЬ
                 =================================== */}
 
                 <Route
                     path="/admin"
-                    element={<AdminLayout />}
+                    element={
+                        <AdminGuard>
+                            <AdminLayout />
+                        </AdminGuard>
+                    }
                 >
 
-                    {/* Головна панель адміністратора */}
+                    {/* ГОЛОВНА ПАНЕЛЬ */}
+
                     <Route
                         index
                         element={
@@ -506,17 +448,23 @@ function App() {
                         }
                     />
 
-                    {/* Список автомобілів */}
+                    {/* ===================================
+                        СПИСОК АВТОМОБІЛІВ
+                    =================================== */}
+
                     <Route
                         path="cars"
                         element={
                             <AdminCarsPage
                                 vehicles={vehicles}
+                                onDelete={removeVehicle}
                             />
                         }
                     />
 
-                    {/* Додавання нового автомобіля */}
+                    {/* ===================================
+                        ДОДАВАННЯ АВТОМОБІЛЯ
+                    =================================== */}
 
                     <Route
                         path="cars/new"
@@ -528,8 +476,10 @@ function App() {
                         }
                     />
 
+                    {/* ===================================
+                        РЕДАГУВАННЯ АВТОМОБІЛЯ
+                    =================================== */}
 
-                    {/* Редагування автомобіля */}
                     <Route
                         path="cars/:id/edit"
                         element={

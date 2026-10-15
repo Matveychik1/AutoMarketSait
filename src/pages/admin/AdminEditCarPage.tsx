@@ -1,6 +1,11 @@
 
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+
+import {
+    Link,
+    useNavigate,
+    useParams,
+} from 'react-router-dom';
 
 import {
     ArrowLeft,
@@ -16,7 +21,14 @@ import type {
 } from '../../components/admin/AdminVehicleForm';
 
 import type { Vehicle } from '../../types/vehicle';
+
 import { getVehicleStatus } from '../../types/vehicleStatus';
+
+import {
+    toCarPayload,
+    updateCar,
+    uploadCarPhoto,
+} from '../../api/carsApi';
 
 type Props = {
     vehicles: Vehicle[];
@@ -27,7 +39,7 @@ type EditablePhoto = {
     id: number;
     url: string;
     name: string;
-    isNew: boolean;
+    file?: File;
 };
 
 const MAX_PHOTOS = 50;
@@ -40,20 +52,25 @@ const ALLOWED_TYPES = new Set([
     'image/avif',
 ]);
 
-function createInitialPhotos(vehicle: Vehicle): EditablePhoto[] {
+function createInitialPhotos(
+    vehicle: Vehicle
+): EditablePhoto[] {
     const urls = vehicle.images?.length
         ? vehicle.images
-        : vehicle.image ? [vehicle.image] : [];
+        : vehicle.image
+            ? [vehicle.image]
+            : [];
 
     return urls.map((url, index) => ({
         id: index + 1,
         url,
         name: `Фото ${index + 1}`,
-        isNew: false,
     }));
 }
 
-function toFormValues(vehicle: Vehicle): AdminVehicleFormValues {
+function toFormValues(
+    vehicle: Vehicle
+): AdminVehicleFormValues {
     return {
         brand: vehicle.brand,
         model: vehicle.model,
@@ -62,44 +79,52 @@ function toFormValues(vehicle: Vehicle): AdminVehicleFormValues {
         mileage: String(vehicle.mileage),
         bodyType: vehicle.bodyType,
         status: getVehicleStatus(vehicle.status),
-        fuelType: vehicle.fuelType as 'Дизель' | 'Бензин',
-        engineVolume: vehicle.engineVolume == null
-            ? ''
-            : String(vehicle.engineVolume),
+        fuelType: vehicle.fuelType,
+        engineVolume:
+            vehicle.engineVolume == null
+                ? ''
+                : String(vehicle.engineVolume),
         transmission: vehicle.transmission ?? '',
         drivetrain: vehicle.drivetrain ?? '',
-        powerHp: vehicle.powerHp == null
-            ? ''
-            : String(vehicle.powerHp),
-        payloadKg: vehicle.payloadKg == null
-            ? ''
-            : String(vehicle.payloadKg),
-        grossWeightKg: vehicle.grossWeightKg == null
-            ? ''
-            : String(vehicle.grossWeightKg),
-        length: vehicle.bodyDimensions?.length == null
-            ? ''
-            : String(vehicle.bodyDimensions.length),
-        width: vehicle.bodyDimensions?.width == null
-            ? ''
-            : String(vehicle.bodyDimensions.width),
-        height: vehicle.bodyDimensions?.height == null
-            ? ''
-            : String(vehicle.bodyDimensions.height),
-        equipment: vehicle.equipment?.join('\n') ?? '',
-        description: vehicle.description ?? '',
-        youtubeVideoId: vehicle.youtubeVideoId ?? '',
+        powerHp:
+            vehicle.powerHp == null
+                ? ''
+                : String(vehicle.powerHp),
+        payloadKg:
+            vehicle.payloadKg == null
+                ? ''
+                : String(vehicle.payloadKg),
+        grossWeightKg:
+            vehicle.grossWeightKg == null
+                ? ''
+                : String(vehicle.grossWeightKg),
+        length:
+            vehicle.bodyDimensions?.length == null
+                ? ''
+                : String(vehicle.bodyDimensions.length),
+        width:
+            vehicle.bodyDimensions?.width == null
+                ? ''
+                : String(vehicle.bodyDimensions.width),
+        height:
+            vehicle.bodyDimensions?.height == null
+                ? ''
+                : String(vehicle.bodyDimensions.height),
+        equipment:
+            vehicle.equipment?.join('\n') ?? '',
+        description:
+            vehicle.description ?? '',
+        youtubeVideoId:
+            vehicle.youtubeVideoId ?? '',
     };
 }
 
-function optionalNumber(value: string): number | undefined {
-    return value.trim() ? Number(value) : undefined;
-}
-
-function normalizeYoutubeId(input: string): string | undefined | null {
+function normalizeYoutubeId(
+    input: string
+): string | null {
     const value = input.trim();
 
-    if (!value) return undefined;
+    if (!value) return null;
 
     if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
         return value;
@@ -107,15 +132,22 @@ function normalizeYoutubeId(input: string): string | undefined | null {
 
     try {
         const url = new URL(value);
-        const host = url.hostname.toLowerCase();
 
-        if (!['https:', 'http:'].includes(url.protocol)) {
+        if (
+            url.protocol !== 'https:' &&
+            url.protocol !== 'http:'
+        ) {
             return null;
         }
 
+        const host = url.hostname.toLowerCase();
+
         let id: string | null | undefined;
 
-        if (host === 'youtu.be' || host === 'www.youtu.be') {
+        if (
+            host === 'youtu.be' ||
+            host === 'www.youtu.be'
+        ) {
             id = url.pathname.split('/')[1];
         } else if (
             [
@@ -129,15 +161,22 @@ function normalizeYoutubeId(input: string): string | undefined | null {
             if (url.pathname === '/watch') {
                 id = url.searchParams.get('v');
             } else {
-                const parts = url.pathname.split('/').filter(Boolean);
+                const parts = url.pathname
+                    .split('/')
+                    .filter(Boolean);
 
-                if (['shorts', 'embed', 'live'].includes(parts[0])) {
+                if (
+                    ['shorts', 'embed', 'live'].includes(
+                        parts[0]
+                    )
+                ) {
                     id = parts[1];
                 }
             }
         }
 
-        return id && /^[A-Za-z0-9_-]{11}$/.test(id)
+        return id &&
+        /^[A-Za-z0-9_-]{11}$/.test(id)
             ? id
             : null;
     } catch {
@@ -158,6 +197,7 @@ export default function AdminEditCarPage({
     if (!vehicle) {
         return (
             <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+
                 <h1 className="text-2xl font-extrabold">
                     Автомобіль не знайдено
                 </h1>
@@ -168,6 +208,7 @@ export default function AdminEditCarPage({
                 >
                     Повернутися до списку
                 </Link>
+
             </div>
         );
     }
@@ -190,36 +231,44 @@ function VehicleEditor({
 }) {
     const navigate = useNavigate();
 
-    const [photos, setPhotos] = useState<EditablePhoto[]>(
-        () => createInitialPhotos(vehicle)
-    );
+    const [photos, setPhotos] =
+        useState<EditablePhoto[]>(
+            () => createInitialPhotos(vehicle)
+        );
 
     const [error, setError] = useState('');
     const [photoError, setPhotoError] = useState('');
+    const [saving, setSaving] = useState(false);
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef =
+        useRef<HTMLInputElement>(null);
+
     const nextPhotoId = useRef(1000);
-    const newUrls = useRef(new Set<string>());
-    const savedRef = useRef(false);
+
+    const newUrls = useRef(
+        new Set<string>()
+    );
 
     useEffect(() => {
         const urls = newUrls.current;
 
         return () => {
-            // Незбережені нові фото більше не потрібні.
-            // Збережені URL використовуються каталогом
-            // у поточній сесії, тому їх не звільняємо.
-            if (!savedRef.current) {
-                urls.forEach(url => URL.revokeObjectURL(url));
-                urls.clear();
-            }
+            urls.forEach(url => {
+                URL.revokeObjectURL(url);
+            });
+
+            urls.clear();
         };
     }, []);
 
     function removePhoto(id: number) {
-        const photo = photos.find(item => item.id === id);
+        if (saving) return;
 
-        if (photo?.isNew) {
+        const photo = photos.find(
+            item => item.id === id
+        );
+
+        if (photo?.file) {
             URL.revokeObjectURL(photo.url);
             newUrls.current.delete(photo.url);
         }
@@ -228,13 +277,17 @@ function VehicleEditor({
             previous.filter(item => item.id !== id)
         );
 
-        setPhotoError('');
         setError('');
+        setPhotoError('');
     }
 
     function movePhoto(from: number, to: number) {
+        if (saving) return;
+
         if (
+            from < 0 ||
             to < 0 ||
+            from >= photos.length ||
             to >= photos.length ||
             from === to
         ) {
@@ -245,6 +298,7 @@ function VehicleEditor({
             const updated = [...previous];
             const [item] = updated.splice(from, 1);
             updated.splice(to, 0, item);
+
             return updated;
         });
 
@@ -252,8 +306,12 @@ function VehicleEditor({
     }
 
     function makeCover(id: number) {
+        if (saving) return;
+
         setPhotos(previous => {
-            const index = previous.findIndex(item => item.id === id);
+            const index = previous.findIndex(
+                item => item.id === id
+            );
 
             if (index <= 0) return previous;
 
@@ -267,13 +325,18 @@ function VehicleEditor({
     }
 
     function addPhotos(files: File[]) {
+        if (saving) return;
+
         setPhotoError('');
         setError('');
 
-        const remaining = MAX_PHOTOS - photos.length;
+        const remaining =
+            MAX_PHOTOS - photos.length;
 
         if (remaining <= 0) {
-            setPhotoError('До одного авто можна додати максимум 50 фото.');
+            setPhotoError(
+                'До одного авто можна додати максимум 50 фото.'
+            );
             return;
         }
 
@@ -294,113 +357,151 @@ function VehicleEditor({
             accepted.push(file);
         }
 
-        const added = accepted.map(file => {
-            const url = URL.createObjectURL(file);
-            newUrls.current.add(url);
+        const added: EditablePhoto[] =
+            accepted.map(file => {
+                const url =
+                    URL.createObjectURL(file);
 
-            return {
-                id: nextPhotoId.current++,
-                url,
-                name: file.name,
-                isNew: true,
-            };
-        });
+                newUrls.current.add(url);
 
-        setPhotos(previous => [...previous, ...added]);
+                return {
+                    id: nextPhotoId.current++,
+                    url,
+                    name: file.name,
+                    file,
+                };
+            });
+
+        setPhotos(previous => [
+            ...previous,
+            ...added,
+        ]);
 
         if (rejected) {
             setPhotoError(
                 `Пропущено ${rejected} фото. ` +
-                'Дозволені JPG, PNG, WebP, AVIF до 15 МБ, максимум 50 фото.'
+                'Дозволені JPG, PNG, WebP, AVIF ' +
+                'до 15 МБ, максимум 50 фото.'
             );
         }
     }
 
     function resetPhotos() {
-        newUrls.current.forEach(url => URL.revokeObjectURL(url));
+        if (saving) return;
+
+        newUrls.current.forEach(url => {
+            URL.revokeObjectURL(url);
+        });
+
         newUrls.current.clear();
 
-        setPhotos(createInitialPhotos(vehicle));
+        setPhotos(
+            createInitialPhotos(vehicle)
+        );
+
         setPhotoError('');
         setError('');
     }
 
-    function saveChanges(values: AdminVehicleFormValues) {
+    async function saveChanges(
+        values: AdminVehicleFormValues
+    ) {
+        if (saving) return;
+
         setError('');
 
         if (photos.length === 0) {
-            setError('Залиш хоча б одну фотографію автомобіля.');
+            setError(
+                'Залиш хоча б одну фотографію автомобіля.'
+            );
             return;
         }
 
-        const youtubeId = normalizeYoutubeId(values.youtubeVideoId);
+        const youtubeInput =
+            values.youtubeVideoId.trim();
 
-        if (youtubeId === null) {
-            setError('Перевір посилання або ID YouTube-відео.');
+        const youtubeId = normalizeYoutubeId(
+            youtubeInput
+        );
+
+        if (youtubeInput && !youtubeId) {
+            setError(
+                'Перевір посилання або ID YouTube-відео.'
+            );
             return;
         }
 
-        if (Number(values.price) <= 0) {
-            setError('Ціна має бути більшою за нуль.');
+        const price = Number(values.price);
+        const mileage = Number(values.mileage);
+
+        if (
+            !Number.isFinite(price) ||
+            price <= 0
+        ) {
+            setError(
+                'Ціна має бути більшою за нуль.'
+            );
             return;
         }
 
-        const dimensionValues = {
-            length: optionalNumber(values.length),
-            width: optionalNumber(values.width),
-            height: optionalNumber(values.height),
-        };
+        if (
+            !Number.isInteger(mileage) ||
+            mileage < 0
+        ) {
+            setError(
+                'Перевір пробіг автомобіля.'
+            );
+            return;
+        }
 
-        const hasDimensions = Object.values(
-            dimensionValues
-        ).some(value => value !== undefined);
+        setSaving(true);
 
-        const updatedVehicle: Vehicle = {
-            ...vehicle,
+        try {
+            // Старі фото вже мають серверну адресу.
+            // Завантажуємо тільки нові файли.
+            const imageUrls: string[] = [];
 
-            brand: values.brand.trim(),
-            model: values.model.trim(),
-            year: Number(values.year),
-            price: Number(values.price),
-            mileage: Number(values.mileage),
-            bodyType: values.bodyType,
-            fuelType: values.fuelType,
-            status: values.status,
+            for (const photo of photos) {
+                if (photo.file) {
+                    const url = await uploadCarPhoto(
+                        photo.file
+                    );
 
-            engineVolume: values.engineVolume.trim()
-                ? Number(values.engineVolume)
-                : null,
+                    imageUrls.push(url);
+                } else {
+                    imageUrls.push(photo.url);
+                }
+            }
 
-            transmission: values.transmission || undefined,
-            drivetrain: values.drivetrain || undefined,
-            powerHp: optionalNumber(values.powerHp),
-            payloadKg: optionalNumber(values.payloadKg),
-            grossWeightKg: optionalNumber(values.grossWeightKg),
+            const payload = toCarPayload(
+                values,
+                imageUrls,
+                youtubeId
+            );
 
-            bodyDimensions: hasDimensions
-                ? dimensionValues
-                : undefined,
+            // Справжнє оновлення в PostgreSQL
+            const savedVehicle = await updateCar(
+                vehicle.id,
+                payload
+            );
 
-            equipment: values.equipment
-                .split('\n')
-                .map(item => item.trim())
-                .filter(Boolean),
+            // Оновлюємо React
+            onSave(savedVehicle);
 
-            description: values.description.trim(),
-            youtubeVideoId: youtubeId,
-
-            image: photos[0].url,
-            images: photos.map(photo => photo.url),
-        };
-
-        savedRef.current = true;
-        onSave(updatedVehicle);
-
-        navigate('/admin/cars', {
-            state: {
-                savedVehicleId: updatedVehicle.id,
-            },
-        });
+            navigate('/admin/cars', {
+                state: {
+                    savedVehicleId: savedVehicle.id,
+                },
+            });
+        } catch (reason) {
+            setError(
+                reason instanceof Error
+                    ? reason.message
+                    : 'Не вдалося зберегти зміни.'
+            );
+        } finally {
+            setSaving(false);
+        }
     }
 
     return (
@@ -424,19 +525,32 @@ function VehicleEditor({
                 </h1>
 
                 <p className="mt-3 text-gray-500 dark:text-gray-400">
-                    Автомобіль #{vehicle.id} — змінюй характеристики,
+                    Автомобіль #{vehicle.id} — редагуй характеристики,
                     статус і фотографії.
                 </p>
             </div>
 
-            <div className="rounded-xl border border-yellow-400/40 bg-yellow-50 p-4 text-sm text-gray-700 dark:bg-yellow-400/10 dark:text-gray-300">
-                Демо-режим: зміни зберігатимуться лише до
-                перезавантаження сторінки. Пізніше підключимо API.
+            <div className="rounded-xl border border-green-400/40 bg-green-50 p-4 text-sm text-gray-700 dark:bg-green-400/10 dark:text-gray-300">
+                Зміни зберігатимуться в PostgreSQL.
+                Після оновлення сторінки вони залишаться.
             </div>
+
+            {saving && (
+                <p
+                    role="status"
+                    className="rounded-xl border border-yellow-400/40 bg-yellow-50 p-4 font-semibold text-yellow-800 dark:bg-yellow-400/10 dark:text-yellow-300"
+                >
+                    Зберігаємо зміни. Не закривай сторінку.
+                </p>
+            )}
 
             <AdminVehicleForm
                 initialValues={toFormValues(vehicle)}
-                submitLabel="Зберегти зміни"
+                submitLabel={
+                    saving
+                        ? 'Зберігаємо...'
+                        : 'Зберегти зміни'
+                }
                 onSubmit={saveChanges}
                 onReset={resetPhotos}
                 onDirty={() => setError('')}
@@ -450,8 +564,8 @@ function VehicleEditor({
                                 </h2>
 
                                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                    Перше фото є головним. Порядок можна
-                                    змінювати стрілками.
+                                    Перше фото є головним.
+                                    Порядок можна змінювати стрілками.
                                 </p>
                             </div>
 
@@ -467,17 +581,25 @@ function VehicleEditor({
                             accept="image/jpeg,image/png,image/webp,image/avif"
                             className="hidden"
                             onChange={event => {
-                                addPhotos(Array.from(
-                                    event.target.files ?? []
-                                ));
+                                addPhotos(
+                                    Array.from(
+                                        event.target.files ?? []
+                                    )
+                                );
+
                                 event.currentTarget.value = '';
                             }}
                         />
 
                         <button
                             type="button"
-                            disabled={photos.length >= MAX_PHOTOS}
-                            onClick={() => fileInputRef.current?.click()}
+                            disabled={
+                                saving ||
+                                photos.length >= MAX_PHOTOS
+                            }
+                            onClick={() =>
+                                fileInputRef.current?.click()
+                            }
                             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-5 py-3 font-bold text-gray-950 hover:bg-yellow-500 disabled:opacity-50"
                         >
                             <ImagePlus size={19} />
@@ -494,6 +616,7 @@ function VehicleEditor({
                         )}
 
                         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+
                             {photos.map((photo, index) => (
                                 <div
                                     key={photo.id}
@@ -504,6 +627,7 @@ function VehicleEditor({
                                     }`}
                                 >
                                     <div className="relative aspect-[4/3]">
+
                                         <img
                                             src={photo.url}
                                             alt={`Фото автомобіля ${index + 1}`}
@@ -515,9 +639,11 @@ function VehicleEditor({
                                                 Головне
                                             </span>
                                         )}
+
                                     </div>
 
                                     <div className="p-2">
+
                                         <p
                                             title={photo.name}
                                             className="truncate text-xs text-gray-500 dark:text-gray-400"
@@ -526,11 +652,18 @@ function VehicleEditor({
                                         </p>
 
                                         <div className="mt-2 flex justify-between gap-1">
+
                                             <button
                                                 type="button"
-                                                disabled={index === 0}
+                                                disabled={
+                                                    saving ||
+                                                    index === 0
+                                                }
                                                 onClick={() =>
-                                                    movePhoto(index, index - 1)
+                                                    movePhoto(
+                                                        index,
+                                                        index - 1
+                                                    )
                                                 }
                                                 aria-label="Перемістити ліворуч"
                                                 className="rounded-lg bg-gray-100 p-2 disabled:opacity-30 dark:bg-gray-800"
@@ -540,11 +673,13 @@ function VehicleEditor({
 
                                             <button
                                                 type="button"
-                                                disabled={index === 0}
+                                                disabled={
+                                                    saving ||
+                                                    index === 0
+                                                }
                                                 onClick={() =>
                                                     makeCover(photo.id)
                                                 }
-                                                title="Зробити головним"
                                                 aria-label="Зробити головним"
                                                 className="rounded-lg bg-yellow-400/20 p-2 text-yellow-700 disabled:opacity-30 dark:text-yellow-400"
                                             >
@@ -553,9 +688,15 @@ function VehicleEditor({
 
                                             <button
                                                 type="button"
-                                                disabled={index === photos.length - 1}
+                                                disabled={
+                                                    saving ||
+                                                    index === photos.length - 1
+                                                }
                                                 onClick={() =>
-                                                    movePhoto(index, index + 1)
+                                                    movePhoto(
+                                                        index,
+                                                        index + 1
+                                                    )
                                                 }
                                                 aria-label="Перемістити праворуч"
                                                 className="rounded-lg bg-gray-100 p-2 disabled:opacity-30 dark:bg-gray-800"
@@ -565,6 +706,7 @@ function VehicleEditor({
 
                                             <button
                                                 type="button"
+                                                disabled={saving}
                                                 onClick={() =>
                                                     removePhoto(photo.id)
                                                 }
@@ -573,10 +715,12 @@ function VehicleEditor({
                                             >
                                                 <Trash2 size={15} />
                                             </button>
+
                                         </div>
                                     </div>
                                 </div>
                             ))}
+
                         </div>
 
                         {photos.length === 0 && (
@@ -584,6 +728,7 @@ function VehicleEditor({
                                 Додай фотографії автомобіля.
                             </p>
                         )}
+
                     </section>
                 }
             />
@@ -596,6 +741,7 @@ function VehicleEditor({
                     {error}
                 </p>
             )}
+
         </div>
     );
 }

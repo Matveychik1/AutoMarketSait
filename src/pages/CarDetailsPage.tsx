@@ -45,13 +45,12 @@ const priceFormatter = new Intl.NumberFormat('en-US', {
 });
 
 // ========================================
-// ГОЛОВНИЙ КОМПОНЕНТ
+// СТОРІНКА АВТОМОБІЛЯ
 // ========================================
 
 export default function CarDetailsPage({
                                            vehicles,
                                        }: Props) {
-    // ID або SEO-friendly slug з адреси
     const { id } = useParams<{ id: string }>();
 
     const vehicleId = getVehicleIdFromSlug(id);
@@ -64,8 +63,6 @@ export default function CarDetailsPage({
     // АВТОМОБІЛЬ НЕ ЗНАЙДЕНО
     // ========================================
 
-    // Приховані автомобілі теж не потрапляють сюди,
-    // оскільки App.tsx передає лише publicVehicles.
     if (!vehicle) {
         return (
             <main className="am-seasonal-surface min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
@@ -99,8 +96,6 @@ export default function CarDetailsPage({
 
     const canonicalSlug = getVehicleSlug(vehicle);
 
-    // Старі посилання типу /cars/1
-    // автоматично перенаправляємо.
     if (id !== canonicalSlug) {
         return (
             <Navigate
@@ -140,33 +135,26 @@ export default function CarDetailsPage({
             : null;
 
     // ========================================
-    // СТОРІНКА АВТОМОБІЛЯ
+    // JSX
     // ========================================
 
     return (
         <main className="am-seasonal-surface min-h-screen bg-gray-50 py-10 dark:bg-gray-950">
-
             <div className="am-seasonal-content mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                {/* ===================================
-                    ПОВЕРНЕННЯ ДО КАТАЛОГУ
-                =================================== */}
+                {/* НАЗАД ДО КАТАЛОГУ */}
 
                 <Link
                     to="/catalog"
                     className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-yellow-600 dark:text-gray-300"
                 >
                     <ArrowLeft size={18} />
-
                     Назад до каталогу
                 </Link>
 
-                {/* ===================================
-                    ЗАГОЛОВОК
-                =================================== */}
+                {/* ЗАГОЛОВОК */}
 
                 <div className="mb-8">
-
                     <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
                         {vehicle.brand} {vehicle.model}
                     </h1>
@@ -174,46 +162,35 @@ export default function CarDetailsPage({
                     <p className="mt-3 text-gray-500 dark:text-gray-400">
                         {vehicle.year} рік • {vehicle.bodyType} • {vehicle.fuelType}
                     </p>
-
                 </div>
 
-                {/* ===================================
-                    ОСНОВНА СІТКА
-                =================================== */}
+                {/* ОСНОВНА СІТКА */}
 
                 <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
 
-                    {/* ===================================
-                        ЛІВА ЧАСТИНА
-                    =================================== */}
+                    {/* ЛІВА ЧАСТИНА */}
 
                     <div className="min-w-0 space-y-8">
 
-                        {/* Фотогалерея */}
                         <VehicleGallery
                             key={vehicle.id}
                             images={images}
                             title={`${vehicle.brand} ${vehicle.model}`}
                         />
 
-                        {/* Характеристики */}
                         <VehicleSpecifications
                             vehicle={vehicle}
                         />
 
-                        {/* Розміри кузова */}
                         <BodyDimensions
                             dimensions={vehicle.bodyDimensions}
                         />
 
-                        {/* Комплектація */}
                         <VehicleEquipment
                             equipment={vehicle.equipment}
                         />
 
-                        {/* ===================================
-                            ОПИС АВТОМОБІЛЯ
-                        =================================== */}
+                        {/* ОПИС */}
 
                         {vehicle.description && (
                             <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
@@ -229,9 +206,7 @@ export default function CarDetailsPage({
                             </section>
                         )}
 
-                        {/* ===================================
-                            YOUTUBE ВІДЕООГЛЯД
-                        =================================== */}
+                        {/* YOUTUBE */}
 
                         {youtubeId && (
                             <section className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900">
@@ -268,14 +243,12 @@ export default function CarDetailsPage({
 
                     </div>
 
-                    {/* ===================================
-                        ПРАВА ЧАСТИНА:
-                        ЦІНА, СТАТУС І КОНТАКТИ
-                    =================================== */}
+                    {/* ПРАВА ЧАСТИНА */}
 
                     <aside className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-900 lg:sticky lg:top-24">
 
-                        {/* Ціна */}
+                        {/* ЦІНА */}
+
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             {isSold
                                 ? 'Остання вказана ціна'
@@ -286,9 +259,7 @@ export default function CarDetailsPage({
                             {priceFormatter.format(vehicle.price)}
                         </p>
 
-                        {/* ===================================
-                            СТАТУС АВТОМОБІЛЯ
-                        =================================== */}
+                        {/* СТАТУС */}
 
                         <div className="mt-5">
                             <VehicleStatusBanner
@@ -296,13 +267,10 @@ export default function CarDetailsPage({
                             />
                         </div>
 
-                        {/* ===================================
-                            АВТО У НАЯВНОСТІ
-                        =================================== */}
+                        {/* У НАЯВНОСТІ */}
 
                         {isAvailable && (
                             <>
-                                {/* Безкоштовна доставка */}
                                 <div className="mt-5 flex items-start gap-3 rounded-xl border border-yellow-400/40 bg-yellow-50 p-3 dark:bg-yellow-400/10">
 
                                     <Truck
@@ -316,7 +284,6 @@ export default function CarDetailsPage({
 
                                 </div>
 
-                                {/* Контакти */}
                                 <div className="mt-6 space-y-3">
 
                                     <a
@@ -339,9 +306,7 @@ export default function CarDetailsPage({
                             </>
                         )}
 
-                        {/* ===================================
-                            ЗАВДАТКОВАНИЙ АВТОМОБІЛЬ
-                        =================================== */}
+                        {/* ЗАВДАТКОВАНИЙ */}
 
                         {isReserved && (
                             <div className="mt-6 space-y-4">
@@ -379,9 +344,7 @@ export default function CarDetailsPage({
                             </div>
                         )}
 
-                        {/* ===================================
-                            ПРОДАНИЙ АВТОМОБІЛЬ
-                        =================================== */}
+                        {/* ПРОДАНО */}
 
                         {isSold && (
                             <div className="mt-6 space-y-4">
@@ -403,7 +366,8 @@ export default function CarDetailsPage({
                             </div>
                         )}
 
-                        {/* Нижній підпис */}
+                        {/* ПІДПИС */}
+
                         <p className="mt-6 border-t border-gray-100 pt-5 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                             AutoMarket Rivne
                         </p>
@@ -411,9 +375,7 @@ export default function CarDetailsPage({
                     </aside>
 
                 </div>
-
             </div>
-
         </main>
     );
 }

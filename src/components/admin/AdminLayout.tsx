@@ -5,17 +5,21 @@ import {
     Link,
     NavLink,
     Outlet,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
     ArrowUpRight,
     LayoutDashboard,
+    LogOut,
     Menu,
     Plus,
     ShieldCheck,
     Truck,
     X,
 } from 'lucide-react';
+
+import { logOutAdmin } from '../../api/adminAuth';
 
 // ========================================
 // НАВІГАЦІЯ АДМІН-ПАНЕЛІ
@@ -47,11 +51,40 @@ const navigation = [
 // ========================================
 
 export default function AdminLayout() {
+    const navigate = useNavigate();
+
     const [mobileMenuOpen, setMobileMenuOpen] =
         useState(false);
 
+    const [loggingOut, setLoggingOut] =
+        useState(false);
+
+    const [logoutError, setLogoutError] =
+        useState('');
+
     function closeMobileMenu() {
         setMobileMenuOpen(false);
+    }
+
+    async function handleLogout() {
+        if (loggingOut) return;
+
+        setLoggingOut(true);
+        setLogoutError('');
+
+        try {
+            await logOutAdmin();
+
+            navigate('/admin/login', {
+                replace: true,
+            });
+        } catch {
+            setLogoutError(
+                'Не вдалося вийти. Перевір з’єднання з API та спробуй ще раз.'
+            );
+        } finally {
+            setLoggingOut(false);
+        }
     }
 
     // ========================================
@@ -90,10 +123,7 @@ export default function AdminLayout() {
                 </div>
             </div>
 
-            {/* ===================================
-                ОСНОВНА НАВІГАЦІЯ
-            =================================== */}
-
+            {/* Основна навігація */}
             <nav
                 aria-label="Навігація адміністратора"
                 className="flex-1 space-y-2 overflow-y-auto px-4 py-6"
@@ -132,10 +162,7 @@ export default function AdminLayout() {
 
             </nav>
 
-            {/* ===================================
-                НИЖНЯ ЧАСТИНА МЕНЮ
-            =================================== */}
-
+            {/* Нижня частина меню */}
             <div className="border-t border-white/10 p-4">
 
                 <Link
@@ -144,25 +171,33 @@ export default function AdminLayout() {
                     className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10 hover:text-white"
                 >
                     Перейти на сайт
-
                     <ArrowUpRight size={19} />
                 </Link>
 
-                <div className="mt-4 rounded-xl bg-white/5 p-4">
+                {/* Вихід */}
+                <button
+                    type="button"
+                    disabled={loggingOut}
+                    onClick={handleLogout}
+                    className="mt-3 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-gray-200 transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                    <LogOut size={19} />
 
-                    <p className="text-sm font-bold text-white">
-                        AutoMarket Rivne
+                    {loggingOut
+                        ? 'Вихід...'
+                        : 'Вийти з адмінки'}
+                </button>
+
+                {logoutError && (
+                    <p
+                        role="alert"
+                        className="mt-2 px-3 text-xs text-red-300"
+                    >
+                        {logoutError}
                     </p>
+                )}
 
-                    <p className="mt-2 text-xs leading-5 text-gray-400">
-                        Демонстраційна адмін-панель.
-                        Підключення API та захищений
-                        вхід зробимо на етапі бекенду.
-                    </p>
-
-                </div>
             </div>
-
         </div>
     );
 
@@ -173,24 +208,15 @@ export default function AdminLayout() {
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-white">
 
-            {/* ===================================
-                БІЧНЕ МЕНЮ НА КОМП'ЮТЕРІ
-            =================================== */}
-
+            {/* Бічне меню на комп'ютері */}
             <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-[#101827] text-white lg:block">
-
                 {sidebarContent}
-
             </aside>
 
-            {/* ===================================
-                МОБІЛЬНЕ МЕНЮ
-            =================================== */}
-
+            {/* Мобільне меню */}
             {mobileMenuOpen && (
                 <div className="fixed inset-0 z-[90] lg:hidden">
 
-                    {/* Затемнення фону */}
                     <button
                         type="button"
                         onClick={closeMobileMenu}
@@ -198,15 +224,12 @@ export default function AdminLayout() {
                         className="absolute inset-0 bg-black/60"
                     />
 
-                    {/* Мобільна панель */}
                     <aside
                         id="admin-mobile-navigation"
                         className="absolute inset-y-0 left-0 w-[min(290px,85vw)] bg-[#101827] text-white shadow-2xl"
                     >
-
                         {sidebarContent}
 
-                        {/* Закрити */}
                         <button
                             type="button"
                             onClick={closeMobileMenu}
@@ -215,29 +238,22 @@ export default function AdminLayout() {
                         >
                             <X size={20} />
                         </button>
-
                     </aside>
+
                 </div>
             )}
 
-            {/* ===================================
-                ОСНОВНА ЧАСТИНА
-            =================================== */}
-
+            {/* Основна частина */}
             <div className="min-h-screen lg:pl-72">
 
-                {/* ===================================
-                    ВЕРХНЯ ПАНЕЛЬ
-                =================================== */}
-
+                {/* Верхня панель */}
                 <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/95">
 
                     <div className="flex h-20 items-center justify-between gap-4 px-4 sm:px-8">
 
-                        {/* Ліва частина */}
                         <div className="flex items-center gap-3">
 
-                            {/* Кнопка мобільного меню */}
+                            {/* Мобільне меню */}
                             <button
                                 type="button"
                                 onClick={() =>
@@ -252,7 +268,6 @@ export default function AdminLayout() {
                             </button>
 
                             <div>
-
                                 <p className="font-extrabold text-gray-900 dark:text-white">
                                     Панель керування
                                 </p>
@@ -260,36 +275,28 @@ export default function AdminLayout() {
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                     AutoMarket Rivne
                                 </p>
-
                             </div>
 
                         </div>
 
-                        {/* Права частина */}
                         <div className="flex items-center gap-3">
 
                             <span className="hidden rounded-full bg-yellow-100 px-3 py-1.5 text-xs font-bold text-yellow-800 sm:inline-flex dark:bg-yellow-400/15 dark:text-yellow-400">
-                                Демо-режим
+                                Авторизований адміністратор
                             </span>
 
-                            {/* Аватар адміністратора */}
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 font-extrabold text-yellow-400 dark:bg-gray-800">
                                 AM
                             </div>
 
                         </div>
-                    </div>
 
+                    </div>
                 </header>
 
-                {/* ===================================
-                    ВМІСТ ПОТОЧНОЇ СТОРІНКИ
-                =================================== */}
-
+                {/* Поточна сторінка */}
                 <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-8 lg:py-10">
-
                     <Outlet />
-
                 </main>
 
             </div>
